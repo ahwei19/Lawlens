@@ -17,20 +17,67 @@
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
   <style>
     body { font-family: 'Inter', sans-serif; }
     .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* Clean PDF / Print Stylesheet */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printable-letter, #printable-letter * {
+        visibility: visible;
+      }
+      #printable-letter {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        background: white;
+        box-shadow: none;
+        border: none;
+      }
+      /* Hide web interactive elements inside printable area if any */
+      .no-print {
+        display: none !important;
+      }
+    }
   </style>
 
-  <!-- Firebase ES Modules imported and attached to window for React to use -->
+  <!-- Firebase ES Modules -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-    import { getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, addDoc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+    import { 
+      getAuth, 
+      signInWithCustomToken, 
+      signInAnonymously, 
+      onAuthStateChanged, 
+      createUserWithEmailAndPassword, 
+      signInWithEmailAndPassword, 
+      signOut,
+      sendEmailVerification
+    } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+    import { 
+      getFirestore, 
+      doc, 
+      setDoc, 
+      getDoc, 
+      collection, 
+      query, 
+      onSnapshot, 
+      addDoc, 
+      updateDoc, 
+      deleteDoc 
+    } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
     window.FirebaseHelper = {
-      initializeApp, getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
+      initializeApp, getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, 
+      createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendEmailVerification,
       getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, addDoc, updateDoc, deleteDoc
     };
   </script>
@@ -50,7 +97,7 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // Define Icons
+    // Define Global Lucide Icons
     const Languages = () => <i data-lucide="languages" className="w-4 h-4 text-slate-500"></i>;
     const Wrench = () => <i data-lucide="wrench" className="w-6 h-6 text-teal-600 shrink-0"></i>;
     const FileText = ({ className }) => <i data-lucide="file-text" className={className || "w-5 h-5 text-teal-600"}></i>;
@@ -74,22 +121,158 @@
     const LogOut = () => <i data-lucide="log-out" className="w-4 h-4"></i>;
     const Camera = () => <i data-lucide="camera" className="w-5 h-5"></i>;
     const XCircle = () => <i data-lucide="x-circle" className="w-4 h-4 text-white"></i>;
+    const CheckCircle = ({ className }) => <i data-lucide="check-circle" className={className || "w-4 h-4 text-emerald-600"}></i>;
 
-    const LANGUAGES = [{ code: 'en', label: 'English' }, { code: 'es', label: 'Español' }];
+    // Full 6 Languages Setup
+    const LANGUAGES = [
+      { code: 'en', label: 'English' },
+      { code: 'es', label: 'Español' },
+      { code: 'zh-CN', label: '简体中文' },
+      { code: 'zh-TW', label: '繁體中文' },
+      { code: 'vi', label: 'Tiếng Việt' },
+      { code: 'tl', label: 'Tagalog' }
+    ];
     
     const REPAIR_TYPES = [
-      { id: 'mold', label: { en: 'Mold', es: 'Moho' }, icon: '🦠' },
-      { id: 'plumbing', label: { en: 'Plumbing', es: 'Plomería' }, icon: '🚰' },
-      { id: 'leak', label: { en: 'Roof/Wall Leak', es: 'Fuga' }, icon: '💧' },
-      { id: 'heat', label: { en: 'Heating', es: 'Calefacción' }, icon: '❄️' },
-      { id: 'electricity', label: { en: 'Electricity', es: 'Electricidad' }, icon: '⚡' },
-      { id: 'pests', label: { en: 'Pests / Rodents', es: 'Plagas' }, icon: '🐀' },
-      { id: 'locks', label: { en: 'Door Lock', es: 'Cerradura' }, icon: '🔒' },
-      { id: 'appliances', label: { en: 'Appliances', es: 'Electrodomésticos' }, icon: '🔌' },
-      { id: 'other', label: { en: 'Other Issue', es: 'Otro' }, icon: '🛠️' }
+      { id: 'mold', label: { en: 'Mold', es: 'Moho', 'zh-CN': '霉菌', 'zh-TW': '霉菌', vi: 'Nấm mốc', tl: 'Amag' }, icon: '🦠' },
+      { id: 'plumbing', label: { en: 'Plumbing', es: 'Plomería', 'zh-CN': '水管管道', 'zh-TW': '水管管道', vi: 'Hệ thống nước', tl: 'Tuberya' }, icon: '🚰' },
+      { id: 'leak', label: { en: 'Roof/Wall Leak', es: 'Fuga', 'zh-CN': '屋顶墙壁漏水', 'zh-TW': '屋頂牆壁漏水', vi: 'Rò rỉ trần/tường', tl: 'Tulo' }, icon: '💧' },
+      { id: 'heat', label: { en: 'Heating', es: 'Calefacción', 'zh-CN': '暖气设施', 'zh-TW': '暖氣設施', vi: 'Hệ thống sưởi', tl: 'Pampainit' }, icon: '❄️' },
+      { id: 'electricity', label: { en: 'Electricity', es: 'Electricidad', 'zh-CN': '电力故障', 'zh-TW': '電力故障', vi: 'Hệ thống điện', tl: 'Kuryente' }, icon: '⚡' },
+      { id: 'pests', label: { en: 'Pests / Rodents', es: 'Plagas', 'zh-CN': '虫害/鼠患', 'zh-TW': '蟲害/鼠患', vi: 'Côn trùng/Chuột', tl: 'Peste' }, icon: '🐀' },
+      { id: 'locks', label: { en: 'Door Lock', es: 'Cerradura', 'zh-CN': '门锁安保', 'zh-TW': '門鎖安報', vi: 'Khóa cửa', tl: 'Trangka' }, icon: '🔒' },
+      { id: 'appliances', label: { en: 'Appliances', es: 'Electrodomésticos', 'zh-CN': '家用电器', 'zh-TW': '家用電器', vi: 'Thiết bị gia dụng', tl: 'Kasangkapan' }, icon: '🔌' },
+      { id: 'other', label: { en: 'Other Issue', es: 'Otro', 'zh-CN': '其他问题', 'zh-TW': '其他問題', vi: 'Vấn đề khác', tl: 'Iba pang Isyu' }, icon: '🛠️' }
     ];
 
+    const UI_TRANSLATIONS = {
+      en: {
+        title: 'LawLens',
+        subtitle: 'Secure Renter Account Portal',
+        dashboard: 'Dashboard',
+        newRequest: 'New Request',
+        savedRequests: 'Your Saved Documents',
+        legalDisclaimer: 'Disclaimer: LawLens is an informational tool and does not provide legal advice.',
+        step: 'Step',
+        of: 'of',
+        back: 'Back',
+        next: 'Next Step',
+        saveGenerate: 'Save & Generate',
+        instructionsTitle: 'How to Use LawLens',
+        verifyAlert: 'Please check your inbox to verify your email address to unlock saved letter history fully!',
+        instructionSteps: [
+          'Create Your Account & confirm your email address.',
+          'Complete the Guided Interview answering standard housing questions.',
+          'Review, download as PDF, or copy your generated formal documents.'
+        ]
+      },
+      es: {
+        title: 'LawLens',
+        subtitle: 'Portal Seguro de Cuenta de Inquilinos',
+        dashboard: 'Tablero',
+        newRequest: 'Nueva Solicitud',
+        savedRequests: 'Documentos Guardados',
+        legalDisclaimer: 'Aviso: LawLens es una herramienta informativa y no constituye asesoramiento legal.',
+        step: 'Paso',
+        of: 'de',
+        back: 'Atrás',
+        next: 'Siguiente Paso',
+        saveGenerate: 'Guardar y Generar',
+        instructionsTitle: 'Cómo usar LawLens',
+        verifyAlert: '¡Revise su bandeja de entrada para verificar su correo electrónico y activar su historial de cartas!',
+        instructionSteps: [
+          'Cree su cuenta y confirme su dirección de correo electrónico.',
+          'Complete la entrevista guiada respondiendo preguntas de vivienda común.',
+          'Revise, descargue como PDF o copie los documentos generados.'
+        ]
+      },
+      'zh-CN': {
+        title: 'LawLens',
+        subtitle: '安全租户账户门户',
+        dashboard: '控制面板',
+        newRequest: '新建维修申请',
+        savedRequests: '您保存的文档',
+        legalDisclaimer: '免责声明：LawLens 仅为信息工具，不提供法律建议。',
+        step: '步骤',
+        of: '之',
+        back: '返回',
+        next: '下一步',
+        saveGenerate: '保存并生成',
+        instructionsTitle: '如何使用 LawLens',
+        verifyAlert: '请检查您的收件箱以验证您的邮箱，解锁保存历史！',
+        instructionSteps: [
+          '创建您的账户并验证邮箱地址。',
+          '完成关于基本住房问题的引导式问答。',
+          '查看、下载为 PDF，或复制您生成的正式法律公函。'
+        ]
+      },
+      'zh-TW': {
+        title: 'LawLens',
+        subtitle: '安全租戶帳戶門戶',
+        dashboard: '控制面板',
+        newRequest: '新建維修申請',
+        savedRequests: '您保存的文檔',
+        legalDisclaimer: '免責聲明：LawLens 僅為信息工具，不提供法律建議。',
+        step: '步驟',
+        of: '之',
+        back: '返回',
+        next: '下一步',
+        saveGenerate: '保存並生成',
+        instructionsTitle: '如何使用 LawLens',
+        verifyAlert: '請檢查您的收件箱以驗證您的郵箱，解鎖保存歷史！',
+        instructionSteps: [
+          '創建您的帳戶並驗證郵箱地址。',
+          '完成關於基本住房問題的引導式問答。',
+          '查看、下載為 PDF，或複製您生成的正式法律公函。'
+        ]
+      },
+      vi: {
+        title: 'LawLens',
+        subtitle: 'Cổng tài khoản người thuê an toàn',
+        dashboard: 'Bảng điều khiển',
+        newRequest: 'Yêu cầu mới',
+        savedRequests: 'Tài liệu đã lưu',
+        legalDisclaimer: 'Tuyên bố miễn trừ trách nhiệm: LawLens là một công cụ cung cấp thông tin và không tư vấn pháp lý.',
+        step: 'Bước',
+        of: 'trên',
+        back: 'Quay lại',
+        next: 'Bước tiếp theo',
+        saveGenerate: 'Lưu & Tạo',
+        instructionsTitle: 'Cách sử dụng LawLens',
+        verifyAlert: 'Vui lòng kiểm tra hộp thư đến để xác minh địa chỉ email của bạn nhằm mở khóa đầy đủ lịch sử thư!',
+        instructionSteps: [
+          'Tạo tài khoản và xác minh địa chỉ email của bạn.',
+          'Hoàn thành phỏng vấn được hướng dẫn trả lời các câu hỏi về nhà ở thông thường.',
+          'Xem xét, tải xuống dưới dạng PDF hoặc sao chép tài liệu chính thức đã tạo của bạn.'
+        ]
+      },
+      tl: {
+        title: 'LawLens',
+        subtitle: 'Ligtas na Portal ng Account ng Nangungupahan',
+        dashboard: 'Dashboard',
+        newRequest: 'Bagong Kahilingan',
+        savedRequests: 'Iyong mga Nai-save na Dokumento',
+        legalDisclaimer: 'Disclaimer: Ang LawLens ay isang tool sa impormasyon at hindi nagbijigay ng legal na payo.',
+        step: 'Hakbang',
+        of: 'ng',
+        back: 'Bumalik',
+        next: 'Susunod na Hakbang',
+        saveGenerate: 'I-save at I-generate',
+        instructionsTitle: 'Paano Gamitin ang LawLens',
+        verifyAlert: 'Paki-tsek ang iyong inbox upang i-verify ang iyong email address para ganap na magamit ang kasaysayan ng sulat!',
+        instructionSteps: [
+          'Gumawa ng iyong Account at kumpirmahin ang iyong email address.',
+          'Kumpletuhin ang Guided Interview sa pamamagitan ng pagsagot sa karaniwang mga tanong sa pabahay.',
+          'Suriin, i-download bilang PDF, o kopyahin ang iyong mga nabuong pormal na dokumento.'
+        ]
+      }
+    };
+
     function App() {
+      // App State
+      const [language, setLanguage] = useState('en');
+      const t = UI_TRANSLATIONS[language] || UI_TRANSLATIONS['en'];
+
       // Firebase State
       const [authInitialized, setAuthInitialized] = useState(false);
       const [appUser, setAppUser] = useState(null);
@@ -103,9 +286,9 @@
       const [authPassword, setAuthPassword] = useState('');
       const [authError, setAuthError] = useState('');
       const [authLoading, setAuthLoading] = useState(false);
+      const [verificationSent, setVerificationSent] = useState(false);
 
-      // App State
-      const [language, setLanguage] = useState('en');
+      // Main App Views State
       const [view, setView] = useState('dashboard');
       const [requests, setRequests] = useState([]);
       const [currentStep, setCurrentStep] = useState(1);
@@ -119,7 +302,6 @@
         if (!window.FirebaseHelper) return;
         const { initializeApp, getAuth, getFirestore } = window.FirebaseHelper;
         
-        // Custom Configuration provided by user
         const firebaseConfig = {
           apiKey: "AIzaSyCTHUAMQFbVxqy8PCbVULY4CUjw5-Hbcho",
           authDomain: "lawlens-tenant-app.firebaseapp.com",
@@ -143,7 +325,7 @@
         }
       }, []);
 
-      // 2. Auth Init and Listener (MANDATORY FIREBASE RULES WITH GRACEFUL TOKEN ERROR FALLBACK)
+      // 2. Auth Init and Listener (Safe Graceful Fallbacks for restricted anonymous auth operations)
       useEffect(() => {
         if (!auth) return;
         const { signInWithCustomToken, signInAnonymously, onAuthStateChanged } = window.FirebaseHelper;
@@ -154,12 +336,19 @@
               try {
                 await signInWithCustomToken(auth, __initial_auth_token);
               } catch (tokenError) {
-                // Handle token mismatch gracefully (common when custom Firebase project configuration is entered manually)
-                console.warn("Custom token mismatch occurred. Safely falling back to anonymous authentication.", tokenError);
-                await signInAnonymously(auth);
+                console.warn("Custom token mismatch. Falling back to anonymous login attempt.", tokenError);
+                try {
+                  await signInAnonymously(auth);
+                } catch (anonError) {
+                  console.warn("Anonymous login is disabled/restricted in Firebase settings. Standing by for manual sign in.", anonError);
+                }
               }
             } else {
-              await signInAnonymously(auth);
+              try {
+                await signInAnonymously(auth);
+              } catch (anonError) {
+                console.warn("Anonymous login is disabled/restricted in Firebase settings. Standing by for manual sign in.", anonError);
+              }
             }
           } catch (e) {
             console.error("Auth init error", e);
@@ -198,35 +387,27 @@
       // Refresh Icons
       useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
-      }, [view, currentStep, selectedRequest, activeOutputTab, appUser]);
+      }, [view, currentStep, selectedRequest, activeOutputTab, appUser, verificationSent]);
 
-      // Helper to translate robotic errors to friendly, encouraging help text
+      // Helper to translate errors
       const getFriendlyErrorMessage = (error) => {
         const code = error.code || error.message || "";
-        
         if (code.includes('api-key-not-valid') || code.includes('invalid-api-key')) {
-          return "Settings Check Needed: The website's Database Key (API Key) is currently incorrect or still being set up. Please double-check your Firebase keys in Step 5 of the guide!";
+          return "Settings Check Needed: The website's Database Key is incorrect or still being set up in Firebase.";
         }
         if (code.includes('auth/invalid-email') || code.includes('invalid-email')) {
-          return "Email Format Check: Please enter a valid email address, like yourname@example.com.";
+          return "Email Format Check: Please enter a valid email address (e.g. name@example.com).";
         }
         if (code.includes('auth/weak-password') || code.includes('weak-password')) {
-          return "Password Too Short: For your security, please create a password that is at least 6 characters long.";
+          return "Password Too Short: Please create a password that is at least 6 characters long.";
         }
         if (code.includes('auth/email-already-in-use') || code.includes('email-already-in-use')) {
-          return "Account Already Exists: An account with this email already exists! Try switching to 'Sign In' instead.";
+          return "Account Already Exists: An account with this email already exists! Try signing in instead.";
         }
         if (code.includes('auth/wrong-password') || code.includes('wrong-password') || code.includes('invalid-credential')) {
-          return "Incorrect Log In: The email or password entered does not match our records. Please try again or sign up for a new account.";
+          return "Incorrect Log In: The email or password entered does not match our records.";
         }
-        if (code.includes('auth/user-not-found') || code.includes('user-not-found')) {
-          return "No Account Found: We couldn't find an account with this email. Check your spelling or click Sign Up below.";
-        }
-        if (code.includes('auth/network-request-failed') || code.includes('network-error')) {
-          return "Internet Connection Check: It looks like you're offline or having network trouble. Please check your connection and try again.";
-        }
-        
-        return "Oops! Something went wrong on our end. Please check your details and try again shortly.";
+        return "Oops! Something went wrong on our end. Please check your inputs and try again.";
       };
 
       // === AUTHENTICATION HANDLERS ===
@@ -234,12 +415,21 @@
         e.preventDefault();
         setAuthError('');
         setAuthLoading(true);
-        const { createUserWithEmailAndPassword, signInWithEmailAndPassword, doc, setDoc } = window.FirebaseHelper;
+        const { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, doc, setDoc } = window.FirebaseHelper;
         
         try {
           if (authMode === 'register') {
             const userCred = await createUserWithEmailAndPassword(auth, authEmail, authPassword);
-            // Track total users for the creator by saving a public profile
+            
+            // Send secure Verification Email
+            try {
+              await sendEmailVerification(userCred.user);
+              setVerificationSent(true);
+            } catch (err) {
+              console.warn("Could not send email verification instantly:", err);
+            }
+
+            // Track user profiles safely for system metrics
             const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'userProfiles', userCred.user.uid);
             await setDoc(userRef, { email: authEmail, createdAt: new Date().toISOString() });
           } else {
@@ -254,6 +444,7 @@
       const handleLogout = () => {
         const { signOut } = window.FirebaseHelper;
         signOut(auth);
+        setVerificationSent(false);
       };
 
       // === INTERVIEW LOGIC ===
@@ -262,7 +453,7 @@
           tenantName: '', rentalAddress: '', apartmentNum: '', city: '',
           landlordName: '', repairType: '', repairDescription: '', dateBegan: new Date().toISOString().split('T')[0],
           notifiedBefore: 'no', urgency: 'normal', children: 'no',
-          photosData: [] // Stores base64 images
+          photosData: []
         });
       };
 
@@ -277,12 +468,12 @@
       };
 
       const steps = [
-        { id: 1, title: { en: 'Profile & Location', es: 'Perfil y ubicación' } },
-        { id: 2, title: { en: 'Select Repair Issue', es: 'Seleccionar problema' } },
-        { id: 3, title: { en: 'Repair Details', es: 'Detalles de la reparación' } },
-        { id: 4, title: { en: 'Landlord Info', es: 'Propietario' } },
-        { id: 5, title: { en: 'Urgency', es: 'Urgencia' } },
-        { id: 6, title: { en: 'Evidence & Photo Upload', es: 'Evidencia y Fotos' } }
+        { id: 1, title: { en: 'Profile & Location', es: 'Perfil y ubicación', 'zh-CN': '基本信息与地址', 'zh-TW': '基本信息與地址', vi: 'Hồ sơ & Địa điểm', tl: 'Profile at Lokasyon' } },
+        { id: 2, title: { en: 'Select Repair Issue', es: 'Seleccionar problema', 'zh-CN': '选择受损类别', 'zh-TW': '選擇受損類別', vi: 'Chọn sự cố', tl: 'Pumili ng Isyu' } },
+        { id: 3, title: { en: 'Repair Details', es: 'Detalles de la reparación', 'zh-CN': '具体受损详情', 'zh-TW': '具體受損詳情', vi: 'Chi tiết sửa chữa', tl: 'Mga Detalye ng Pag-aayos' } },
+        { id: 4, title: { en: 'Landlord Info', es: 'Propietario', 'zh-CN': '房东联络信息', 'zh-TW': '房東聯絡信息', vi: 'Thông tin chủ nhà', tl: 'Impormasyon ng Landlord' } },
+        { id: 5, title: { en: 'Urgency', es: 'Urgencia', 'zh-CN': '紧急程度评估', 'zh-TW': '緊急程度評估', vi: 'Mức độ khẩn cấp', tl: 'Urgensya' } },
+        { id: 6, title: { en: 'Evidence & Photo Upload', es: 'Evidencia y Fotos', 'zh-CN': '上传现场照片', 'zh-TW': '上傳現場照片', vi: 'Bằng chứng & Tải ảnh', tl: 'Katibayan at Larawan' } }
       ];
 
       const handleNextStep = () => {
@@ -299,7 +490,6 @@
         }
       };
 
-      // Handle Image Resizing to bypass Firestore 1MB limits
       const handlePhotoUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -309,7 +499,7 @@
           const img = new Image();
           img.onload = () => {
             const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 600; // Resize width
+            const MAX_WIDTH = 600;
             const scaleSize = MAX_WIDTH / img.width;
             canvas.width = MAX_WIDTH;
             canvas.height = img.height * scaleSize;
@@ -317,7 +507,7 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            const base64String = canvas.toDataURL('image/jpeg', 0.6); // Compress quality
+            const base64String = canvas.toDataURL('image/jpeg', 0.6);
             
             setFormData(prev => ({
               ...prev,
@@ -341,7 +531,6 @@
         const issueObj = REPAIR_TYPES.find(r => r.id === data.repairType);
         const issueLabel = issueObj ? issueObj.label[lang] : data.repairType;
         
-        // Automatically default to a highly professional tone
         const salutation = lang === 'en' ? `Dear ${data.landlordName || 'Landlord'},` : `Estimado ${data.landlordName || 'Propietario'},`;
         const opening = lang === 'en' 
           ? `I am writing to formally request repairs to my rental unit at ${data.rentalAddress} ${data.apartmentNum ? 'Unit ' + data.apartmentNum : ''}.`
@@ -387,12 +576,12 @@
           setSelectedRequest(newRequest);
         } catch (error) {
           console.error("Error saving request to Firestore:", error);
-          setSelectedRequest(newRequest); // Show locally anyway
+          setSelectedRequest(newRequest); 
           alert("Could not save to cloud database, but your letters were successfully generated and are shown below!");
         }
         
         setLoading(false);
-        setView('dashboard'); // Redirect back to show the generated letter on the dashboard
+        setView('dashboard'); 
       };
 
       const handleDeleteRequest = async (id, e) => {
@@ -415,9 +604,30 @@
         document.body.removeChild(textArea);
       };
 
-      // Wait until Firebase checks auth state
       if (!authInitialized) {
         return <div className="min-h-screen flex items-center justify-center text-teal-600 font-bold">Connecting securely...</div>;
+      }
+
+      // === AUTH: VERIFICATION RESEND OR NOTIFICATION VIEW ===
+      if (verificationSent) {
+        return (
+          <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+              <div className="inline-flex p-3 bg-emerald-100 rounded-2xl text-emerald-700 shadow-md mx-auto">
+                <CheckCircle className="w-8 h-8" />
+              </div>
+              <h2 className="mt-4 text-3xl font-extrabold text-slate-900">Verify Your Email</h2>
+              <p className="mt-2 text-sm text-slate-600">We sent a safe verification link to your inbox at <span className="font-bold text-slate-800">{authEmail}</span>.</p>
+              
+              <div className="mt-6 space-y-4">
+                <p className="text-xs text-slate-500">Confirming your email is vital to keeping your documents and rental information secure from unauthorized access.</p>
+                <button onClick={() => setVerificationSent(false)} className="w-full inline-flex justify-center px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-sm text-sm">
+                  Go to Sign In
+                </button>
+              </div>
+            </div>
+          </div>
+        );
       }
 
       // === RENDER LOGIN/SIGNUP UI ===
@@ -429,7 +639,7 @@
                 <ShieldAlert />
               </div>
               <h2 className="mt-4 text-3xl font-extrabold text-slate-900">LawLens</h2>
-              <p className="mt-2 text-sm text-slate-600">Secure Renter Account Portal</p>
+              <p className="mt-2 text-sm text-slate-600">{t.subtitle}</p>
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -467,7 +677,7 @@
       return (
         <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
           
-          <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm backdrop-blur-md bg-white/95">
+          <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm backdrop-blur-md bg-white/95 no-print">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
               <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('dashboard')}>
                 <div className="p-2 bg-gradient-to-tr from-teal-600 to-emerald-500 rounded-xl text-white shadow-md">
@@ -493,16 +703,37 @@
           </header>
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="mb-6 p-3 bg-teal-50 border border-teal-200 rounded-xl flex items-start gap-3">
-              <Info />
-              <p className="text-xs text-teal-900 leading-relaxed">
-                <strong>Your Safe Portal:</strong> This account helps you safely store your repair requests and track communications. Always take clear photos of your housing issues!
-              </p>
+            
+            {/* Safe Educational Instructions Guide Box */}
+            <div className="mb-6 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm no-print">
+              <h3 className="font-extrabold text-slate-800 text-base mb-3 flex items-center gap-2">
+                <Info /> {t.instructionsTitle}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {t.instructionSteps.map((stepText, idx) => (
+                  <div key={idx} className="flex items-start gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                    <span className="flex items-center justify-center w-6 h-6 bg-teal-100 text-teal-800 text-xs font-bold rounded-full shrink-0">
+                      {idx + 1}
+                    </span>
+                    <p className="text-xs text-slate-600 leading-relaxed font-medium">{stepText}</p>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* Email Verification Banner */}
+            {!appUser.emailVerified && (
+              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 no-print">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-amber-900">{t.verifyAlert}</p>
+                </div>
+              </div>
+            )}
 
             {/* DASHBOARD VIEW */}
             {view === 'dashboard' && (
-              <div className="space-y-8 animate-fadeIn">
+              <div className="space-y-8 animate-fadeIn no-print">
                 <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 rounded-2xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="space-y-2 max-w-xl">
                     <div className="inline-flex items-center gap-1 px-3 py-1 bg-teal-500/20 border border-teal-500/30 rounded-full text-teal-300 text-xs font-bold">
@@ -511,7 +742,7 @@
                     <h2 className="text-2xl sm:text-3.5xl font-extrabold tracking-tight">Protect Your Home. Enforce Your Rights.</h2>
                   </div>
                   <button onClick={handleStartNewRequest} className="shrink-0 flex items-center gap-2 px-6 py-4 bg-teal-500 hover:bg-teal-400 text-slate-900 font-extrabold text-lg rounded-2xl shadow-lg transition transform active:scale-95">
-                    <Plus /> New Request
+                    <Plus /> {t.newRequest}
                   </button>
                 </div>
 
@@ -519,7 +750,7 @@
                   
                   {/* History Column */}
                   <div className="lg:col-span-1 space-y-4">
-                    <h3 className="font-bold text-slate-700 text-lg border-b border-slate-200 pb-2">Your Saved Documents</h3>
+                    <h3 className="font-bold text-slate-700 text-lg border-b border-slate-200 pb-2">{t.savedRequests}</h3>
                     <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                       {requests.length === 0 ? (
                         <p className="text-sm text-slate-500 text-center py-6 bg-white rounded-xl border border-dashed border-slate-300">No requests saved yet. Click "New Request" to begin.</p>
@@ -549,8 +780,10 @@
                           <h3 className="text-xl font-bold text-slate-800">
                             {REPAIR_TYPES.find(r => r.id === selectedRequest.repairType)?.label[language] || selectedRequest.repairType} Request
                           </h3>
-                          <button onClick={() => window.print()} className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition">
-                            <Printer /> Print
+                          
+                          {/* Print to PDF Action Button */}
+                          <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition">
+                            <Printer /> Print / Save as PDF
                           </button>
                         </div>
 
@@ -578,10 +811,12 @@
                               <MessageSquare /> SMS Text
                             </button>
                           </div>
+                          
                           <div className="mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl relative">
                             <button onClick={() => copyToClipboard(activeOutputTab === 'letter' ? selectedRequest.letterText : activeOutputTab === 'email' ? selectedRequest.emailText : selectedRequest.smsText)} className="absolute top-3 right-3 p-2 bg-white hover:bg-slate-100 text-slate-500 rounded-lg border border-slate-200 shadow-sm transition flex items-center gap-1 text-xs">
                               <Copy /> Copy Text
                             </button>
+                            
                             <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700 leading-relaxed max-h-[400px] overflow-y-auto">
                               {activeOutputTab === 'letter' && selectedRequest.letterText}
                               {activeOutputTab === 'email' && selectedRequest.emailText}
@@ -601,12 +836,33 @@
               </div>
             )}
 
+            {/* INVISIBLE PRINT AREA FOR PDF COMPILATION */}
+            {selectedRequest && (
+              <div id="printable-letter" className="hidden print:block p-10 bg-white leading-relaxed text-slate-900 text-sm">
+                <div className="whitespace-pre-wrap font-serif">
+                  {selectedRequest.letterText}
+                </div>
+                {selectedRequest.photosData && selectedRequest.photosData.length > 0 && (
+                  <div className="mt-12 pt-8 border-t border-slate-200 page-break-before">
+                    <h4 className="font-bold text-slate-800 text-base mb-4">Attached Evidence Photos</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      {selectedRequest.photosData.map((b64, idx) => (
+                        <div key={idx} className="border border-slate-300 p-2 rounded-lg">
+                          <img src={b64} alt="Evidence" className="w-full h-auto object-contain rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* INTERVIEW WIZARD VIEW */}
             {view === 'interview' && (
-              <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden animate-fadeIn">
+              <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden animate-fadeIn no-print">
                 <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-6 sm:px-8 py-5 text-white flex justify-between items-center">
                   <div>
-                    <span className="text-xs uppercase tracking-widest text-teal-400 font-bold">Step {currentStep} of {steps.length}</span>
+                    <span className="text-xs uppercase tracking-widest text-teal-400 font-bold">{t.step} {currentStep} {t.of} {steps.length}</span>
                     <h3 className="text-lg font-bold">{steps[currentStep-1].title[language]}</h3>
                   </div>
                   <button onClick={() => setView('dashboard')} className="text-slate-400 hover:text-white text-xs font-semibold">Cancel</button>
@@ -620,15 +876,15 @@
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><UserIcon /> Tenant Name</label>
-                        <input type="text" value={formData.tenantName} onChange={e => handleInputChange('tenantName', e.target.value)} placeholder="Jane Doe" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                        <input type="text" value={formData.tenantName || ''} onChange={e => handleInputChange('tenantName', e.target.value)} placeholder="Jane Doe" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
                       </div>
                       <div>
                         <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><HomeIcon /> Street Address</label>
-                        <input type="text" value={formData.rentalAddress} onChange={e => handleInputChange('rentalAddress', e.target.value)} placeholder="123 Main St" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                        <input type="text" value={formData.rentalAddress || ''} onChange={e => handleInputChange('rentalAddress', e.target.value)} placeholder="123 Main St" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
                       </div>
                       <div>
                         <label className="text-sm font-bold text-slate-700">Apt / Unit Number</label>
-                        <input type="text" value={formData.apartmentNum} onChange={e => handleInputChange('apartmentNum', e.target.value)} placeholder="Apt 4B" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                        <input type="text" value={formData.apartmentNum || ''} onChange={e => handleInputChange('apartmentNum', e.target.value)} placeholder="Apt 4B" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
                       </div>
                     </div>
                   )}
@@ -638,7 +894,7 @@
                       {REPAIR_TYPES.map(repair => (
                         <div key={repair.id} onClick={() => handleInputChange('repairType', repair.id)} className={`p-4 rounded-xl border text-center cursor-pointer transition flex flex-col items-center justify-center gap-2 ${formData.repairType === repair.id ? 'bg-teal-50 border-teal-500 ring-2 ring-teal-500/25' : 'bg-slate-50'}`}>
                           <span className="text-3xl">{repair.icon}</span>
-                          <span className="text-xs font-bold">{repair.label[language]}</span>
+                          <span className="text-xs font-bold">{repair.label[language] || repair.label['en']}</span>
                         </div>
                       ))}
                     </div>
@@ -647,14 +903,14 @@
                   {currentStep === 3 && (
                     <div className="space-y-4">
                       <label className="text-sm font-bold text-slate-700">Describe the problem exactly as you see it:</label>
-                      <textarea rows={4} value={formData.repairDescription} onChange={e => handleInputChange('repairDescription', e.target.value)} placeholder="E.g. The kitchen sink pipe has been leaking heavily..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></textarea>
+                      <textarea rows={4} value={formData.repairDescription || ''} onChange={e => handleInputChange('repairDescription', e.target.value)} placeholder="E.g. The kitchen sink pipe has been leaking heavily..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></textarea>
                     </div>
                   )}
 
                   {currentStep === 4 && (
                     <div className="space-y-4">
                       <label className="text-sm font-bold text-slate-700">Landlord / Property Manager Name</label>
-                      <input type="text" value={formData.landlordName} onChange={e => handleInputChange('landlordName', e.target.value)} placeholder="Jane Management" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                      <input type="text" value={formData.landlordName || ''} onChange={e => handleInputChange('landlordName', e.target.value)} placeholder="Jane Management" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
                     </div>
                   )}
 
@@ -672,17 +928,14 @@
                     </div>
                   )}
 
-                  {/* UPDATED STEP 6: PHOTO UPLOAD */}
                   {currentStep === 6 && (
                     <div className="space-y-6">
                       <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
                         <h4 className="font-bold text-slate-800 text-sm">Upload Photographic Evidence</h4>
                         <p className="text-xs text-slate-500 leading-relaxed">Adding photos makes your repair request much stronger. Take clear, well-lit photos of the problem area.</p>
                         
-                        {/* Hidden file input */}
                         <input type="file" id="photo-upload" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                         
-                        {/* Custom Upload Button */}
                         <label htmlFor="photo-upload" className="cursor-pointer inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-white border-2 border-dashed border-teal-500 text-teal-700 font-bold rounded-xl hover:bg-teal-50 transition shadow-sm">
                           <Camera /> Add a Photo
                         </label>
@@ -707,17 +960,17 @@
 
                 <div className="bg-slate-50 border-t border-slate-100 px-6 sm:px-8 py-5 flex justify-between items-center">
                   <button onClick={handlePrevStep} disabled={currentStep === 1} className="flex items-center gap-1 px-4 py-2 text-sm font-bold rounded-xl text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed">
-                    <ChevronLeft /> Back
+                    <ChevronLeft /> {t.back}
                   </button>
                   <button onClick={handleNextStep} className="flex items-center gap-1 px-6 py-3 bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm rounded-xl shadow-md transition">
-                    {currentStep === steps.length ? 'Save & Generate' : 'Next Step'} <ChevronRight />
+                    {currentStep === steps.length ? t.saveGenerate : t.next} <ChevronRight />
                   </button>
                 </div>
               </div>
             )}
             
             {view === 'result' && loading && (
-              <div className="text-center py-20"><h3 className="text-xl font-bold text-slate-800">Saving securely...</h3></div>
+              <div className="text-center py-20 no-print"><h3 className="text-xl font-bold text-slate-800">Saving securely...</h3></div>
             )}
           </main>
         </div>
