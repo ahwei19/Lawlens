@@ -42,7 +42,6 @@
         box-shadow: none;
         border: none;
       }
-      /* Hide web interactive elements inside printable area if any */
       .no-print {
         display: none !important;
       }
@@ -122,6 +121,7 @@
     const Camera = () => <i data-lucide="camera" className="w-5 h-5"></i>;
     const XCircle = () => <i data-lucide="x-circle" className="w-4 h-4 text-white"></i>;
     const CheckCircle = ({ className }) => <i data-lucide="check-circle" className={className || "w-4 h-4 text-emerald-600"}></i>;
+    const RefreshCw = () => <i data-lucide="refresh-cw" className="w-4 h-4"></i>;
 
     // Full 6 Languages Setup
     const LANGUAGES = [
@@ -268,6 +268,46 @@
       }
     };
 
+    // Auto-formatting helpers
+    const cleanName = (str) => {
+      if (!str) return '';
+      return str.trim()
+        .replace(/\s+/g, ' ')
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    };
+
+    const cleanSentence = (str) => {
+      if (!str) return '';
+      let trimmed = str.trim().replace(/\s+/g, ' ');
+      if (trimmed.length === 0) return '';
+      // Capitalize first letter
+      trimmed = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+      // Add period if missing
+      if (!/[.!?]$/.test(trimmed)) {
+        trimmed += '.';
+      }
+      return trimmed;
+    };
+
+    const cleanAddress = (str) => {
+      if (!str) return '';
+      return str.trim()
+        .replace(/\s+/g, ' ')
+        .split(/\s+/)
+        .map(word => {
+          // Keep common abbreviations standardized
+          if (/^apt\.?$/i.test(word)) return 'Apt';
+          if (/^st\.?$/i.test(word)) return 'St';
+          if (/^ave\.?$/i.test(word)) return 'Ave';
+          if (/^rd\.?$/i.test(word)) return 'Rd';
+          if (/^blvd\.?$/i.test(word)) return 'Blvd';
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        })
+        .join(' ');
+    };
+
     function App() {
       // App State
       const [language, setLanguage] = useState('en');
@@ -287,6 +327,7 @@
       const [authError, setAuthError] = useState('');
       const [authLoading, setAuthLoading] = useState(false);
       const [verificationSent, setVerificationSent] = useState(false);
+      const [checkLoading, setCheckLoading] = useState(false);
 
       // Main App Views State
       const [view, setView] = useState('dashboard');
@@ -325,7 +366,7 @@
         }
       }, []);
 
-      // 2. Auth Init and Listener (Safe Graceful Fallbacks for restricted anonymous auth operations)
+      // 2. Auth Init and Listener (Safe Graceful Fallbacks)
       useEffect(() => {
         if (!auth) return;
         const { signInWithCustomToken, signInAnonymously, onAuthStateChanged } = window.FirebaseHelper;
@@ -340,14 +381,14 @@
                 try {
                   await signInAnonymously(auth);
                 } catch (anonError) {
-                  console.warn("Anonymous login is disabled/restricted in Firebase settings. Standing by for manual sign in.", anonError);
+                  console.warn("Anonymous login disabled.", anonError);
                 }
               }
             } else {
               try {
                 await signInAnonymously(auth);
               } catch (anonError) {
-                console.warn("Anonymous login is disabled/restricted in Firebase settings. Standing by for manual sign in.", anonError);
+                console.warn("Anonymous login disabled.", anonError);
               }
             }
           } catch (e) {
@@ -368,9 +409,9 @@
         return () => unsubscribe();
       }, [auth]);
 
-      // 3. Fetch Data from Firestore (Guarded by user check)
+      // 3. Fetch Data from Firestore (Guarded by user verification status check)
       useEffect(() => {
-        if (!appUser || !db) return;
+        if (!appUser || !appUser.emailVerified || !db) return;
         const { collection, onSnapshot } = window.FirebaseHelper;
         
         const q = collection(db, 'artifacts', appId, 'users', appUser.uid, 'requests');
@@ -389,7 +430,7 @@
         if (window.lucide) window.lucide.createIcons();
       }, [view, currentStep, selectedRequest, activeOutputTab, appUser, verificationSent]);
 
-      // Helper to translate errors
+      // Error Code Decoder
       const getFriendlyErrorMessage = (error) => {
         const code = error.code || error.message || "";
         if (code.includes('api-key-not-valid') || code.includes('invalid-api-key')) {
@@ -433,7 +474,10 @@
             const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'userProfiles', userCred.user.uid);
             await setDoc(userRef, { email: authEmail, createdAt: new Date().toISOString() });
           } else {
-            await signInWithEmailAndPassword(auth, authEmail, authPassword);
+            const userCred = await signInWithEmailAndPassword(auth, authEmail, authPassword);
+            if (!userCred.user.emailVerified) {
+              setVerificationSent(true);
+            }
           }
         } catch (error) {
           setAuthError(getFriendlyErrorMessage(error));
@@ -445,6 +489,38 @@
         const { signOut } = window.FirebaseHelper;
         signOut(auth);
         setVerificationSent(false);
+      };
+
+      const checkVerificationStatus = async () => {
+        setCheckLoading(true);
+        try {
+          if (auth.currentUser) {
+            await auth.currentUser.reload();
+            const updatedUser = auth.currentUser;
+            setAppUser({ ...updatedUser });
+            if (updatedUser.emailVerified) {
+              setVerificationSent(false);
+              alert("Verification verified! Welcome aboard.");
+            } else {
+              alert("Your account is still unverified. Please tap the confirmation link sent to " + updatedUser.email + " first.");
+            }
+          }
+        } catch (err) {
+          console.error("Reload status failed:", err);
+        }
+        setCheckLoading(false);
+      };
+
+      const resendVerification = async () => {
+        const { sendEmailVerification } = window.FirebaseHelper;
+        if (auth.currentUser) {
+          try {
+            await sendEmailVerification(auth.currentUser);
+            alert("Verification email resent successfully!");
+          } catch (err) {
+            alert("Please wait a minute before requesting another verification link.");
+          }
+        }
       };
 
       // === INTERVIEW LOGIC ===
@@ -531,23 +607,31 @@
         const issueObj = REPAIR_TYPES.find(r => r.id === data.repairType);
         const issueLabel = issueObj ? issueObj.label[lang] : data.repairType;
         
-        const salutation = lang === 'en' ? `Dear ${data.landlordName || 'Landlord'},` : `Estimado ${data.landlordName || 'Propietario'},`;
+        // Apply AI capitalization & formatting cleanups instantly
+        const formattedTenantName = cleanName(data.tenantName);
+        const formattedAddress = cleanAddress(data.rentalAddress);
+        const formattedApt = data.apartmentNum ? data.apartmentNum.trim().toUpperCase() : '';
+        const formattedCity = cleanName(data.city);
+        const formattedLandlord = cleanName(data.landlordName);
+        const formattedDesc = cleanSentence(data.repairDescription);
+
+        const salutation = lang === 'en' ? `Dear ${formattedLandlord || 'Landlord'},` : `Estimado ${formattedLandlord || 'Propietario'},`;
         const opening = lang === 'en' 
-          ? `I am writing to formally request repairs to my rental unit at ${data.rentalAddress} ${data.apartmentNum ? 'Unit ' + data.apartmentNum : ''}.`
-          : `Le escribo para solicitar formalmente reparaciones en mi unidad ubicada en ${data.rentalAddress} ${data.apartmentNum ? 'Apt ' + data.apartmentNum : ''}.`;
+          ? `I am writing to formally request repairs to my rental unit at ${formattedAddress} ${formattedApt ? 'Unit ' + formattedApt : ''}, located in ${formattedCity}.`
+          : `Le escribo para solicitar formalmente reparaciones en mi unidad ubicada en ${formattedAddress} ${formattedApt ? 'Apt ' + formattedApt : ''}, en la ciudad de ${formattedCity}.`;
         const body = lang === 'en'
-          ? `There is an issue regarding: ${issueLabel}.\n\nDetails: ${data.repairDescription}\n\nUnder California Civil Code Section 1941.1, landlords must maintain premises in a tenantable condition.`
-          : `Hay un problema de: ${issueLabel}.\n\nDetalles: ${data.repairDescription}\n\nSegún el Código Civil de California 1941.1, los propietarios deben mantener el local en condiciones habitables.`;
+          ? `There is a habitability issue regarding: ${issueLabel}.\n\nDetails of the issue: ${formattedDesc}\n\nUnder California Civil Code Section 1941.1, landlords are legally required to maintain premises in a safe and tenantable condition fit for human occupation.`
+          : `Existe un problema de habitabilidad de: ${issueLabel}.\n\nDetalles del problema: ${formattedDesc}\n\nSegún la sección 1941.1 del Código Civil de California, los propietarios están obligados por ley a mantener las instalaciones en condiciones habitables.`;
         const urgencySection = data.urgency === 'emergency' 
-          ? (lang === 'en' ? `As this is an emergency, please address this within 24 hours.` : `Al ser una emergencia, por favor atienda esto en 24 horas.`)
-          : (lang === 'en' ? `Please contact me immediately to schedule a repair.` : `Comuníquese conmigo de inmediato para programar la reparación.`);
-        const closing = lang === 'en' ? `Sincerely,\n${data.tenantName}` : `Atentamente,\n${data.tenantName}`;
+          ? (lang === 'en' ? `As this is an active emergency, please coordinate with a professional immediately to address this within 24 hours.` : `Dado que se trata de una emergencia activa, coordine con un profesional de inmediato para resolver esto dentro de las próximas 24 horas.`)
+          : (lang === 'en' ? `Please contact me immediately to schedule a mutually convenient repair date.` : `Comuníquese conmigo de inmediato para programar una fecha de reparación conveniente.`);
+        const closing = lang === 'en' ? `Sincerely,\n\n${formattedTenantName}` : `Atentamente,\n\n${formattedTenantName}`;
 
         const letterText = `${new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES')}\n\n${salutation}\n\n${opening}\n\n${body}\n\n${urgencySection}\n\n${closing}`;
-        const emailText = `Subject: Repair Request - ${issueLabel}\n\n${salutation}\n\n${opening}\n\n${body}\n\n${urgencySection}\n\n${closing}`;
+        const emailText = `Subject: Repair Request - ${issueLabel} - Apt ${formattedApt}\n\n${salutation}\n\n${opening}\n\n${body}\n\n${urgencySection}\n\n${closing}`;
         const smsText = lang === 'en' 
-          ? `Hi ${data.landlordName || 'Landlord'}, this is ${data.tenantName} at Apt ${data.apartmentNum}. I'm texting to request urgent repair for ${issueLabel}. Please let me know when a repair person can come.`
-          : `Hola ${data.landlordName || 'Propietario'}, soy ${data.tenantName} del Apt ${data.apartmentNum}. Escribo para solicitar reparación de ${issueLabel}. Avíseme cuándo puede venir alguien.`;
+          ? `Hi ${formattedLandlord || 'Landlord'}, this is ${formattedTenantName} at Apt ${formattedApt}. I'm texting to request urgent repair for ${issueLabel}. Please let me know when a repair person can come.`
+          : `Hola ${formattedLandlord || 'Propietario'}, soy ${formattedTenantName} del Apt ${formattedApt}. Escribo para solicitar reparación de ${issueLabel}. Avíseme cuándo puede venir alguien.`;
 
         return { letterText, emailText, smsText };
       };
@@ -561,6 +645,11 @@
         const newRequest = {
           id: 'req-' + Date.now(),
           ...formData,
+          tenantName: cleanName(formData.tenantName),
+          rentalAddress: cleanAddress(formData.rentalAddress),
+          city: cleanName(formData.city),
+          landlordName: cleanName(formData.landlordName),
+          repairDescription: cleanSentence(formData.repairDescription),
           status: 'Submitted',
           createdAt: new Date().toISOString(),
           letterText: fallback.letterText,
@@ -608,21 +697,33 @@
         return <div className="min-h-screen flex items-center justify-center text-teal-600 font-bold">Connecting securely...</div>;
       }
 
-      // === AUTH: VERIFICATION RESEND OR NOTIFICATION VIEW ===
-      if (verificationSent) {
+      // === AUTH: STRICT VERIFICATION OR CHECKPOINT SCREEN ===
+      if (appUser && !appUser.emailVerified && !appUser.isAnonymous) {
         return (
-          <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+          <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 animate-fadeIn">
             <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-              <div className="inline-flex p-3 bg-emerald-100 rounded-2xl text-emerald-700 shadow-md mx-auto">
-                <CheckCircle className="w-8 h-8" />
+              <div className="inline-flex p-3 bg-amber-100 rounded-2xl text-amber-700 shadow-md mx-auto">
+                <AlertTriangle className="w-8 h-8 text-amber-600" />
               </div>
-              <h2 className="mt-4 text-3xl font-extrabold text-slate-900">Verify Your Email</h2>
-              <p className="mt-2 text-sm text-slate-600">We sent a safe verification link to your inbox at <span className="font-bold text-slate-800">{authEmail}</span>.</p>
+              <h2 className="mt-4 text-3xl font-extrabold text-slate-900">Email Verification Required</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                You must verify your email address before using LawLens. We sent a secure verification link to:
+              </p>
+              <p className="font-extrabold text-teal-700 mt-1">{appUser.email}</p>
               
-              <div className="mt-6 space-y-4">
-                <p className="text-xs text-slate-500">Confirming your email is vital to keeping your documents and rental information secure from unauthorized access.</p>
-                <button onClick={() => setVerificationSent(false)} className="w-full inline-flex justify-center px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-sm text-sm">
-                  Go to Sign In
+              <div className="mt-8 space-y-4 max-w-sm mx-auto">
+                <button 
+                  onClick={checkVerificationStatus} 
+                  disabled={checkLoading}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-sm text-sm transition"
+                >
+                  <RefreshCw /> {checkLoading ? "Checking..." : "I Verified My Email"}
+                </button>
+                <button onClick={resendVerification} className="w-full inline-flex justify-center px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition">
+                  Resend Verification Email
+                </button>
+                <button onClick={handleLogout} className="w-full inline-flex justify-center px-4 py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-sm transition">
+                  Log Out / Switch Account
                 </button>
               </div>
             </div>
@@ -720,16 +821,6 @@
                 ))}
               </div>
             </div>
-
-            {/* Email Verification Banner */}
-            {!appUser.emailVerified && (
-              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 no-print">
-                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-xs font-bold text-amber-900">{t.verifyAlert}</p>
-                </div>
-              </div>
-            )}
 
             {/* DASHBOARD VIEW */}
             {view === 'dashboard' && (
@@ -838,12 +929,12 @@
 
             {/* INVISIBLE PRINT AREA FOR PDF COMPILATION */}
             {selectedRequest && (
-              <div id="printable-letter" className="hidden print:block p-10 bg-white leading-relaxed text-slate-900 text-sm">
+              <div id="printable-letter" className="hidden print:block p-10 bg-white leading-relaxed text-slate-900 text-sm animate-fadeIn">
                 <div className="whitespace-pre-wrap font-serif">
                   {selectedRequest.letterText}
                 </div>
                 {selectedRequest.photosData && selectedRequest.photosData.length > 0 && (
-                  <div className="mt-12 pt-8 border-t border-slate-200 page-break-before">
+                  <div className="mt-12 pt-8 border-t border-slate-200">
                     <h4 className="font-bold text-slate-800 text-base mb-4">Attached Evidence Photos</h4>
                     <div className="grid grid-cols-2 gap-4">
                       {selectedRequest.photosData.map((b64, idx) => (
@@ -876,15 +967,19 @@
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><UserIcon /> Tenant Name</label>
-                        <input type="text" value={formData.tenantName || ''} onChange={e => handleInputChange('tenantName', e.target.value)} placeholder="Jane Doe" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                        <input type="text" value={formData.tenantName || ''} onChange={e => handleInputChange('tenantName', e.target.value)} placeholder="e.g. jane doe" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
                       </div>
                       <div>
                         <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><HomeIcon /> Street Address</label>
-                        <input type="text" value={formData.rentalAddress || ''} onChange={e => handleInputChange('rentalAddress', e.target.value)} placeholder="123 Main St" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                        <input type="text" value={formData.rentalAddress || ''} onChange={e => handleInputChange('rentalAddress', e.target.value)} placeholder="e.g. 123 mission st" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
                       </div>
                       <div>
                         <label className="text-sm font-bold text-slate-700">Apt / Unit Number</label>
-                        <input type="text" value={formData.apartmentNum || ''} onChange={e => handleInputChange('apartmentNum', e.target.value)} placeholder="Apt 4B" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                        <input type="text" value={formData.apartmentNum || ''} onChange={e => handleInputChange('apartmentNum', e.target.value)} placeholder="Apt 4B" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-slate-700">City</label>
+                        <input type="text" value={formData.city || ''} onChange={e => handleInputChange('city', e.target.value)} placeholder="e.g. san francisco" className="mt-1.5 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
                       </div>
                     </div>
                   )}
@@ -903,14 +998,14 @@
                   {currentStep === 3 && (
                     <div className="space-y-4">
                       <label className="text-sm font-bold text-slate-700">Describe the problem exactly as you see it:</label>
-                      <textarea rows={4} value={formData.repairDescription || ''} onChange={e => handleInputChange('repairDescription', e.target.value)} placeholder="E.g. The kitchen sink pipe has been leaking heavily..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></textarea>
+                      <textarea rows={4} value={formData.repairDescription || ''} onChange={e => handleInputChange('repairDescription', e.target.value)} placeholder="E.g. the shower handle broke off and won't turn on..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"></textarea>
                     </div>
                   )}
 
                   {currentStep === 4 && (
                     <div className="space-y-4">
                       <label className="text-sm font-bold text-slate-700">Landlord / Property Manager Name</label>
-                      <input type="text" value={formData.landlordName || ''} onChange={e => handleInputChange('landlordName', e.target.value)} placeholder="Jane Management" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
+                      <input type="text" value={formData.landlordName || ''} onChange={e => handleInputChange('landlordName', e.target.value)} placeholder="e.g. jane management" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
                     </div>
                   )}
 
