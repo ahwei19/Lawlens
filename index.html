@@ -23,27 +23,28 @@
     .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Clean PDF / Print Stylesheet */
+    /* Optimized CSS Styles for Flawless PDF Printing */
     @media print {
-      body * {
-        visibility: hidden;
+      header, main, footer, .no-print {
+        display: none !important;
       }
-      #printable-letter, #printable-letter * {
-        visibility: visible;
+      body {
+        background-color: white !important;
+        color: black !important;
       }
       #printable-letter {
+        display: block !important;
         position: absolute;
         left: 0;
         top: 0;
         width: 100%;
         padding: 0;
         margin: 0;
-        background: white;
-        box-shadow: none;
-        border: none;
+        background: white !important;
+        color: black !important;
       }
-      .no-print {
-        display: none !important;
+      .print-no-break {
+        page-break-inside: avoid;
       }
     }
   </style>
@@ -282,9 +283,7 @@
       if (!str) return '';
       let trimmed = str.trim().replace(/\s+/g, ' ');
       if (trimmed.length === 0) return '';
-      // Capitalize first letter
       trimmed = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-      // Add period if missing
       if (!/[.!?]$/.test(trimmed)) {
         trimmed += '.';
       }
@@ -297,7 +296,6 @@
         .replace(/\s+/g, ' ')
         .split(/\s+/)
         .map(word => {
-          // Keep common abbreviations standardized
           if (/^apt\.?$/i.test(word)) return 'Apt';
           if (/^st\.?$/i.test(word)) return 'St';
           if (/^ave\.?$/i.test(word)) return 'Ave';
@@ -462,12 +460,23 @@
           if (authMode === 'register') {
             const userCred = await createUserWithEmailAndPassword(auth, authEmail, authPassword);
             
-            // Send secure Verification Email
+            // Safe Dual-stage Verification Sender
             try {
-              await sendEmailVerification(userCred.user);
+              const actionCodeSettings = {
+                url: window.location.href, // Auto redirects user back into this app layout
+                handleCodeInApp: false     // Disable strict deep linking to ensure standard web execution
+              };
+              await sendEmailVerification(userCred.user, actionCodeSettings);
               setVerificationSent(true);
-            } catch (err) {
-              console.warn("Could not send email verification instantly:", err);
+            } catch (linkError) {
+              console.warn("Direct-redirect email format rejected, falling back to clean verification standard...", linkError);
+              try {
+                await sendEmailVerification(userCred.user);
+                setVerificationSent(true);
+              } catch (standardError) {
+                console.error("All email send strategies failed:", standardError);
+                throw standardError;
+              }
             }
 
             // Track user profiles safely for system metrics
@@ -515,10 +524,19 @@
         const { sendEmailVerification } = window.FirebaseHelper;
         if (auth.currentUser) {
           try {
-            await sendEmailVerification(auth.currentUser);
+            const actionCodeSettings = {
+              url: window.location.href,
+              handleCodeInApp: false
+            };
+            await sendEmailVerification(auth.currentUser, actionCodeSettings);
             alert("Verification email resent successfully!");
           } catch (err) {
-            alert("Please wait a minute before requesting another verification link.");
+            try {
+              await sendEmailVerification(auth.currentUser);
+              alert("Verification email resent successfully!");
+            } catch (innerErr) {
+              alert("Please wait a minute before requesting another verification link.");
+            }
           }
         }
       };
@@ -605,9 +623,9 @@
 
       const generateLocalTexts = (data, lang) => {
         const issueObj = REPAIR_TYPES.find(r => r.id === data.repairType);
-        const issueLabel = issueObj ? issueObj.label[lang] : data.repairType;
+        const issueLabel = issueObj ? (issueObj.label[lang] || issueObj.label['en']) : data.repairType;
         
-        // Apply AI capitalization & formatting cleanups instantly
+        // Apply Auto formatting, font structure and punctuation checks
         const formattedTenantName = cleanName(data.tenantName);
         const formattedAddress = cleanAddress(data.rentalAddress);
         const formattedApt = data.apartmentNum ? data.apartmentNum.trim().toUpperCase() : '';
@@ -701,7 +719,7 @@
       if (appUser && !appUser.emailVerified && !appUser.isAnonymous) {
         return (
           <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 animate-fadeIn">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md text-center px-4">
               <div className="inline-flex p-3 bg-amber-100 rounded-2xl text-amber-700 shadow-md mx-auto">
                 <AlertTriangle className="w-8 h-8 text-amber-600" />
               </div>
@@ -803,10 +821,10 @@
             </div>
           </header>
 
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 no-print">
             
             {/* Safe Educational Instructions Guide Box */}
-            <div className="mb-6 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm no-print">
+            <div className="mb-6 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
               <h3 className="font-extrabold text-slate-800 text-base mb-3 flex items-center gap-2">
                 <Info /> {t.instructionsTitle}
               </h3>
@@ -824,7 +842,7 @@
 
             {/* DASHBOARD VIEW */}
             {view === 'dashboard' && (
-              <div className="space-y-8 animate-fadeIn no-print">
+              <div className="space-y-8 animate-fadeIn">
                 <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 rounded-2xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="space-y-2 max-w-xl">
                     <div className="inline-flex items-center gap-1 px-3 py-1 bg-teal-500/20 border border-teal-500/30 rounded-full text-teal-300 text-xs font-bold">
@@ -852,7 +870,7 @@
                             <div className="flex items-center gap-3">
                               <span className="text-2xl">{iconObj?.icon || '🛠️'}</span>
                               <div>
-                                <h4 className="font-bold text-slate-800 text-sm">{iconObj?.label[language] || req.repairType}</h4>
+                                <h4 className="font-bold text-slate-800 text-sm">{iconObj?.label?.[language] || req.repairType}</h4>
                                 <p className="text-xs text-slate-500">{new Date(req.createdAt).toLocaleDateString()}</p>
                               </div>
                             </div>
@@ -869,7 +887,7 @@
                       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
                           <h3 className="text-xl font-bold text-slate-800">
-                            {REPAIR_TYPES.find(r => r.id === selectedRequest.repairType)?.label[language] || selectedRequest.repairType} Request
+                            {REPAIR_TYPES.find(r => r.id === selectedRequest.repairType)?.label?.[language] || selectedRequest.repairType} Request
                           </h3>
                           
                           {/* Print to PDF Action Button */}
@@ -904,14 +922,14 @@
                           </div>
                           
                           <div className="mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl relative">
-                            <button onClick={() => copyToClipboard(activeOutputTab === 'letter' ? selectedRequest.letterText : activeOutputTab === 'email' ? selectedRequest.emailText : selectedRequest.smsText)} className="absolute top-3 right-3 p-2 bg-white hover:bg-slate-100 text-slate-500 rounded-lg border border-slate-200 shadow-sm transition flex items-center gap-1 text-xs">
+                            <button onClick={() => copyToClipboard(activeOutputTab === 'letter' ? (selectedRequest.letterText || '') : activeOutputTab === 'email' ? (selectedRequest.emailText || '') : (selectedRequest.smsText || ''))} className="absolute top-3 right-3 p-2 bg-white hover:bg-slate-100 text-slate-500 rounded-lg border border-slate-200 shadow-sm transition flex items-center gap-1 text-xs">
                               <Copy /> Copy Text
                             </button>
                             
                             <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700 leading-relaxed max-h-[400px] overflow-y-auto">
-                              {activeOutputTab === 'letter' && selectedRequest.letterText}
-                              {activeOutputTab === 'email' && selectedRequest.emailText}
-                              {activeOutputTab === 'sms' && selectedRequest.smsText}
+                              {activeOutputTab === 'letter' && (selectedRequest.letterText || '')}
+                              {activeOutputTab === 'email' && (selectedRequest.emailText || '')}
+                              {activeOutputTab === 'sms' && (selectedRequest.smsText || '')}
                             </pre>
                           </div>
                         </div>
@@ -927,30 +945,9 @@
               </div>
             )}
 
-            {/* INVISIBLE PRINT AREA FOR PDF COMPILATION */}
-            {selectedRequest && (
-              <div id="printable-letter" className="hidden print:block p-10 bg-white leading-relaxed text-slate-900 text-sm animate-fadeIn">
-                <div className="whitespace-pre-wrap font-serif">
-                  {selectedRequest.letterText}
-                </div>
-                {selectedRequest.photosData && selectedRequest.photosData.length > 0 && (
-                  <div className="mt-12 pt-8 border-t border-slate-200">
-                    <h4 className="font-bold text-slate-800 text-base mb-4">Attached Evidence Photos</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedRequest.photosData.map((b64, idx) => (
-                        <div key={idx} className="border border-slate-300 p-2 rounded-lg">
-                          <img src={b64} alt="Evidence" className="w-full h-auto object-contain rounded" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* INTERVIEW WIZARD VIEW */}
             {view === 'interview' && (
-              <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden animate-fadeIn no-print">
+              <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden animate-fadeIn">
                 <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-6 sm:px-8 py-5 text-white flex justify-between items-center">
                   <div>
                     <span className="text-xs uppercase tracking-widest text-teal-400 font-bold">{t.step} {currentStep} {t.of} {steps.length}</span>
@@ -1065,9 +1062,30 @@
             )}
             
             {view === 'result' && loading && (
-              <div className="text-center py-20 no-print"><h3 className="text-xl font-bold text-slate-800">Saving securely...</h3></div>
+              <div className="text-center py-20"><h3 className="text-xl font-bold text-slate-800">Saving securely...</h3></div>
             )}
           </main>
+
+          {/* INVISIBLE PRINT AREA FOR PDF COMPILATION (Activated only during print jobs) */}
+          {selectedRequest && (
+            <div id="printable-letter" className="hidden print:block p-10 bg-white leading-relaxed text-slate-900 text-sm">
+              <div className="whitespace-pre-wrap font-serif text-slate-900 leading-relaxed text-sm">
+                {selectedRequest.letterText || ''}
+              </div>
+              {selectedRequest.photosData && selectedRequest.photosData.length > 0 && (
+                <div className="mt-12 pt-8 border-t border-slate-200 print-no-break">
+                  <h4 className="font-bold text-slate-800 text-base mb-4">Attached Evidence Photos</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedRequest.photosData.map((b64, idx) => (
+                      <div key={idx} className="border border-slate-300 p-2 rounded-lg">
+                        <img src={b64} alt="Evidence" className="w-full h-auto object-contain rounded animate-fadeIn" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       );
     }
