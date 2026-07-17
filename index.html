@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LawLens - Repair Request Generator</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React and ReactDOM CDNs (Production versions) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel CDN to compile JSX in the browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-50">
+
+  <!-- Root element for React App -->
+  <div id="root"></div>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- React Code -->
+  <script type="text/babel">
+    // De-structure React hooks
+    const { useState, useEffect } = React;
+
+    // Define Icons using Lucide globally
+    const Languages = () => <i data-lucide="languages" class="w-4 h-4 text-slate-500"></i>;
+    const Wrench = () => <i data-lucide="wrench" class="w-6 h-6 text-teal-600 shrink-0"></i>;
+    const FileText = ({ className }) => <i data-lucide="file-text" class={className || "w-5 h-5 text-teal-600"}></i>;
+    const Mail = () => <i data-lucide="mail" class="w-4 h-4"></i>;
+    const MessageSquare = () => <i data-lucide="message-square" class="w-4 h-4"></i>;
+    const Printer = () => <i data-lucide="printer" class="w-4 h-4"></i>;
+    const Copy = () => <i data-lucide="copy" class="w-3.5 h-3.5"></i>;
+    const CheckSquare = () => <i data-lucide="check-square" class="w-4.5 h-4.5 text-teal-600"></i>;
+    const Clock = ({ className }) => <i data-lucide="clock" class={className || "w-4.5 h-4.5 text-amber-600"}></i>;
+    const AlertTriangle = ({ className }) => <i data-lucide="alert-triangle" class={className || "w-6 h-6 text-rose-600 shrink-0"}></i>;
+    const User = () => <i data-lucide="user" class="w-4 h-4 text-slate-400"></i>;
+    const Home = () => <i data-lucide="home" class="w-4 h-4 text-slate-400"></i>;
+    const ChevronRight = () => <i data-lucide="chevron-right" class="w-4 h-4"></i>;
+    const ChevronLeft = () => <i data-lucide="chevron-left" class="w-4 h-4"></i>;
+    const Plus = () => <i data-lucide="plus" class="w-6 h-6"></i>;
+    const Trash2 = () => <i data-lucide="trash-2" class="w-4 h-4"></i>;
+    const ShieldAlert = () => <i data-lucide="shield-alert" class="w-6 h-6"></i>;
+    const Sparkles = () => <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>;
+    const Layers = () => <i data-lucide="layers" class="w-5.5 h-5.5 text-teal-600"></i>;
+    const Info = () => <i data-lucide="info" class="w-5 h-5 text-teal-600 shrink-0 mt-0.5"></i>;
+
+    // Translation Dictionaries
+    const LANGUAGES = [
+      { code: 'en', label: 'English' },
+      { code: 'es', label: 'Español' },
+      { code: 'zh-CN', label: '简体中文' },
+      { code: 'zh-TW', label: '繁體中文' },
+      { code: 'vi', label: 'Tiếng Việt' },
+      { code: 'tl', label: 'Tagalog' }
+    ];
+
+    const UI_TRANSLATIONS = {
+      en: {
+        title: 'LawLens Repair Request',
+        subtitle: 'Bay Area Tenant Empowerment Portal',
+        dashboard: 'Dashboard',
+        newRequest: 'New Repair Request',
+        savedRequests: 'Your Saved Requests',
+        legalDisclaimer: 'Disclaimer: LawLens is an informational tool and does not provide legal advice. Creating this letter does not establish an attorney-client relationship. Please consult a tenant attorney or legal aid organization if your landlord fails to respond.',
+        languageSelect: 'Choose Language',
+        start: 'Start Interview',
+        back: 'Back',
+        next: 'Next Question',
+        generate: 'Generate Letter Packet',
+        generating: 'Generating customized legal letter...',
+        step: 'Step',
+        of: 'of',
+        yes: 'Yes',
+        no: 'No',
+        urgency: 'Urgency Level',
+        emergency: 'Immediate Emergency (Health/Safety hazard)',
+        high: 'High (Impacts daily habitability)',
+        normal: 'Normal (Inconvenience but functional)',
+        notifiedBefore: 'Have you notified the landlord before?',
+        howNotified: 'How did you notify them?',
+        whenNotified: 'When did you notify them?',
+        howManyTimes: 'How many times have you contacted them?',
+        childrenInHousehold: 'Are there children under 18 in the household?',
+        seniorsInHousehold: 'Are there seniors (65+) in the household?',
+        disabledInHousehold: 'Are there residents with disabilities?',
+        healthSymptoms: 'Has anyone experienced health symptoms due to this issue?',
+        photosAvailable: 'Do you have photos of the issue?',
+        videosAvailable: 'Do you have videos of the issue?',
+        receiptsAvailable: 'Do you have receipts for repairs or temporary solutions?',
+        generateSuccess: 'Request generated successfully!',
+        copySuccess: 'Copied to clipboard!',
+        print: 'Print Letter',
+        evidenceTitle: 'Personalized Evidence Checklist',
+        followUpTitle: 'Recommended Action Timeline',
+        outputTabs: {
+          letter: 'Formal Letter',
+          email: 'Email Draft',
+          sms: 'Text Message'
+        },
+        tones: {
+          friendly: 'Friendly Reminder',
+          professional: 'Professional Request',
+          firm: 'Firm Follow-up',
+          hazard: 'Serious Hazard / Code Violation'
+        },
+        bayAreaCities: [
+          'San Francisco', 'Oakland', 'San Jose', 'Berkeley', 'Richmond', 
+          'Hayward', 'Fremont', 'Vallejo', 'San Mateo', 'Daly City', 
+          'Concord', 'Sunnyvale', 'Santa Clara', 'San Rafael'
+        ],
+        futureToolsTitle: 'Housing Tools (Coming Soon)',
+        futureToolsDesc: 'LawLens is expanding to support all aspects of Bay Area tenant rights.',
+        futureTools: [
+          { title: 'Security Deposit Recovery', desc: 'Demand return of your security deposit with interest and bad faith penalties.' },
+          { title: 'Illegal Landlord Entry', desc: 'Address violations of your privacy rights and unannounced landlord visits.' },
+          { title: 'Rent Increase Challenge', desc: 'Check if your rent increase complies with the California Tenant Protection Act (AB 1482) or local rent control.' },
+          { title: 'Landlord Harassment Notice', desc: 'Formally demand an end to harassing behaviors, threats, or service reductions.' }
+        ]
+      },
+      es: {
+        title: 'LawLens Solicitud de Reparación',
+        subtitle: 'Portal de Empoderamiento de Inquilinos de la Bahía',
+        dashboard: 'Tablero',
+        newRequest: 'Nueva Solicitud de Reparación',
+        savedRequests: 'Sus Solicitudes Guardadas',
+        legalDisclaimer: 'Descargo de responsabilidad: LawLens es una herramienta informativa y no brinda asesoramiento legal. La creación de esta carta no establece una relación de abogado-cliente. Consulte con un abogado de inquilinos o una organización de asistencia legal si su arrendador no responde.',
+        languageSelect: 'Seleccionar idioma',
+        start: 'Iniciar entrevista',
+        back: 'Atrás',
+        next: 'Siguiente pregunta',
+        generate: 'Generar paquete de cartas',
+        generating: 'Generando carta legal personalizada...',
+        step: 'Paso',
+        of: 'de',
+        yes: 'Sí',
+        no: 'No',
+        urgency: 'Nivel de urgencia',
+        emergency: 'Urgencia inmediata (Riesgo para la salud/seguridad)',
+        high: 'Alta (Afecta la habitabilidad diaria)',
+        normal: 'Normal (Inconveniencia pero funcional)',
+        notifiedBefore: '¿Ha notificado al propietario anteriormente?',
+        howNotified: '¿Cómo les notificó?',
+        whenNotified: '¿Cuándo les notificó?',
+        howManyTimes: '¿Cuántas veces se ha comunicado con ellos?',
+        childrenInHousehold: '¿Hay niños menores de 18 años en el hogar?',
+        seniorsInHousehold: '¿Hay personas mayores (65+) en el hogar?',
+        disabledInHousehold: '¿Hay residentes con discapacidades?',
+        healthSymptoms: '¿Alguien ha experimentado síntomas de salud debido a este problema?',
+        photosAvailable: '¿Tiene fotos del problema?',
+        videosAvailable: '¿Tiene videos del problema?',
+        receiptsAvailable: '¿Tiene recibos de reparaciones o soluciones temporales?',
+        generateSuccess: '¡Solicitud generada con éxito!',
+        copySuccess: '¡Copiado al portapapeles!',
+        print: 'Imprimir carta',
+        evidenceTitle: 'Lista de verificación de evidencia personalizada',
+        followUpTitle: 'Cronograma recomendado de seguimiento',
+        outputTabs: {
+          letter: 'Carta formal',
+          email: 'Borrador de correo',
+          sms: 'Mensaje de texto'
+        },
+        tones: {
+          friendly: 'Recordatorio amistoso',
+          professional: 'Solicitud profesional',
+          firm: 'Seguimiento firme',
+          hazard: 'Peligro grave / Violación del código'
+        },
+        bayAreaCities: [
+          'San Francisco', 'Oakland', 'San José', 'Berkeley', 'Richmond', 
+          'Hayward', 'Fremont', 'Vallejo', 'San Mateo', 'Daly City', 
+          'Concord', 'Sunnyvale', 'Santa Clara', 'San Rafael'
+        ],
+        futureToolsTitle: 'Herramientas de vivienda (Próximamente)',
+        futureToolsDesc: 'LawLens se está expandiendo para apoyar todos los aspectos de los derechos de los inquilinos del Área de la Bahía.',
+        futureTools: [
+          { title: 'Recuperación de depósito de seguridad', desc: 'Exija la devolución de su depósito con intereses y sanciones de mala fe.' },
+          { title: 'Entrada ilegal del arrendador', desc: 'Aborde violaciones de sus derechos de privacidad y visitas sin previo aviso.' },
+          { title: 'Desafío de aumento de renta', desc: 'Verifique si su aumento cumple con la Ley de Protección al Inquilino (AB 1482) o el control local.' },
+          { title: 'Aviso de acoso del arrendador', desc: 'Exija formalmente el fin de conductas de acoso o reducción de servicios.' }
+        ]
+      },
+      'zh-CN': {
+        title: 'LawLens 维修申请生成器',
+        subtitle: '湾区租户权益赋能门户',
+        dashboard: '控制面板',
+        newRequest: '新建维修申请',
+        savedRequests: '您保存的申请',
+        legalDisclaimer: '免责声明：LawLens 仅为信息工具，不提供法律建议。生成此信件并不建立律师-客户关系。如果您的房东未能回应，请咨询租户律师或法律援助机构。',
+        languageSelect: '选择语言',
+        start: '开始访谈',
+        back: '返回',
+        next: '下一题',
+        generate: '生成信件包',
+        generating: '正在生成定制的法律信件...',
+        step: '步骤',
+        of: '之',
+        yes: '是',
+        no: '否',
+        urgency: '紧急程度',
+        emergency: '紧急情况（健康/安全隐患）',
+        high: '高（影响日常居住适宜性）',
+        normal: '普通（不便但功能正常）',
+        notifiedBefore: '您以前通知过房东吗？',
+        howNotified: '您是如何通知他们的？',
+        whenNotified: '您是什么时候通知他们的？',
+        howManyTimes: '您联系过他们多少次？',
+        childrenInHousehold: '家中有未满18岁的儿童吗？',
+        seniorsInHousehold: '家中有老年人（65岁以上）吗？',
+        disabledInHousehold: '家中有残障人士吗？',
+        healthSymptoms: '是否有人因该问题出现健康症状？',
+        photosAvailable: '您有问题的照片吗？',
+        videosAvailable: '您有问题的视频吗？',
+        receiptsAvailable: '您有维修或临时方案的收据吗？',
+        generateSuccess: '申请生成成功！',
+        copySuccess: '已复制到剪贴板！',
+        print: '打印信件',
+        evidenceTitle: '个性化证据清单',
+        followUpTitle: '建议后续行动时间线',
+        outputTabs: {
+          letter: '正式信件',
+          email: '邮件草稿',
+          sms: '短信'
+        },
+        tones: {
+          friendly: '友好提醒',
+          professional: '专业请求',
+          firm: '坚决催促',
+          hazard: '严重安全隐患 / 违规'
+        },
+        bayAreaCities: [
+          '旧金山', '奥克兰', '圣何塞', '伯克利', '里士满', 
+          '海沃德', '弗里蒙特', '瓦列霍', '圣马特奥', '戴利城', 
+          '康科德', '桑尼维尔', '圣克拉拉', '圣拉斐尔'
+        ],
+        futureToolsTitle: '住房保障工具（即将推出）',
+        futureToolsDesc: 'LawLens 正在扩展以全面支持湾区租户权利。',
+        futureTools: [
+          { title: '押金退还索赔', desc: '要求退还您的安全押金，连同利息及恶意扣留罚款。' },
+          { title: '房东非法入室纠纷', desc: '解决侵犯隐私权以及房东未经提前通知擅自入室的问题。' },
+          { title: '房租违规上涨申诉', desc: '核实租金涨幅是否符合加州《租户保护法》（AB 1482）或地方租金管制政策。' },
+          { title: '停止房东骚扰通知', desc: '正式要求房东停止骚扰行为、威胁或缩减服务的行为。' }
+        ]
+      },
+      'zh-TW': {
+        title: 'LawLens 維修申請生成器',
+        subtitle: '灣區租戶權益賦能門戶',
+        dashboard: '控制面板',
+        newRequest: '新建維修申請',
+        savedRequests: '您保存的申請',
+        legalDisclaimer: '免責聲明：LawLens 僅為信息工具，不提供法律建議。生成此信件並不建立律師-客戶關係。如果您的房東未能回應，請諮詢租戶律師或法律援助機構。',
+        languageSelect: '選擇語言',
+        start: '開始訪談',
+        back: '返回',
+        next: '下一題',
+        generate: '生成信件包',
+        generating: '正在生成定制的法律信件...',
+        step: '步驟',
+        of: '之',
+        yes: '是',
+        no: '否',
+        urgency: '緊急程度',
+        emergency: '緊急情況（健康/安全隱患）',
+        high: '高（影響日常居住適宜性）',
+        normal: '普通（不便但功能正常）',
+        notifiedBefore: '您以前通知過房東嗎？',
+        howNotified: '您是如何通知他們的？',
+        whenNotified: '您是什麼時候通知他們的？',
+        howManyTimes: '您聯繫過他們多少次？',
+        childrenInHousehold: '家中有未滿18歲的兒童嗎？',
+        seniorsInHousehold: '家中有老年人（65歲以上）嗎？',
+        disabledInHousehold: '家中有殘障人士嗎？',
+        healthSymptoms: '是否有人因該問題出現健康症狀？',
+        photosAvailable: '您有問題的照片嗎？',
+        videosAvailable: '您有問題的視頻嗎？',
+        receiptsAvailable: '您有維修或臨時方案的收據嗎？',
+        generateSuccess: '申請生成成功！',
+        copySuccess: '已複製到剪貼板！',
+        print: '打印信件',
+        evidenceTitle: '個性化證據清單',
+        followUpTitle: '建議後續行動時間線',
+        outputTabs: {
+          letter: '正式信件',
+          email: '郵件草稿',
+          sms: '短信'
+        },
+        tones: {
+          friendly: '友好提醒',
+          professional: '專業請求',
+          firm: '堅決催促',
+          hazard: '嚴重安全隱患 / 違規'
+        },
+        bayAreaCities: [
+          '舊金山', '奧克蘭', '聖荷塞', '伯克利', '里士滿', 
+          '海沃德', '弗里蒙特', '瓦列霍', '聖馬特奧', '戴利城', 
+          '康科德', '桑尼維爾', '聖克拉拉', '聖拉斐爾'
+        ],
+        futureToolsTitle: '住房保障工具（即將推出）',
+        futureToolsDesc: 'LawLens 正在擴展以全面支持灣區租戶權利。',
+        futureTools: [
+          { title: '押金退還索賠', desc: '要求退還您的安全押金，連同利息及惡意扣留罰款。' },
+          { title: '房東非法入室糾紛', desc: '解決侵犯隱私權以及房東未經提前通知擅自入室的問題。' },
+          { title: '房租違規上漲申訴', desc: '核實租金漲幅是否符合加州《租戶保護法》（AB 1482）或地方租金管制政策。' },
+          { title: '停止房東騷擾通知', desc: '正式要求房東停止騷擾行為、威脅或縮減服務的行為。' }
+        ]
+      },
+      vi: {
+        title: 'LawLens Tạo Yêu Cầu Sửa Chữa',
+        subtitle: 'Cổng thông tin Quyền lợi Người Thuê Nhà Vùng Vịnh',
+        dashboard: 'Bảng Điều Khiển',
+        newRequest: 'Yêu Cầu Sửa Chữa Mới',
+        savedRequests: 'Các Yêu Cầu Đã Lưu',
+        legalDisclaimer: 'Tuyên bố miễn trừ trách nhiệm: LawLens là một công cụ cung cấp thông tin và không tư vấn pháp lý. Việc tạo thư này không thiết lập mối quan hệ luật sư-khách hàng. Vui lòng tham khảo ý kiến luật sư hoặc tổ chức hỗ trợ pháp lý nếu chủ nhà không phản hồi.',
+        languageSelect: 'Chọn ngôn ngữ',
+        start: 'Bắt đầu cuộc phỏng vấn',
+        back: 'Quay lại',
+        next: 'Câu tiếp theo',
+        generate: 'Tạo Gói Thư',
+        generating: 'Đang tạo thư pháp lý tùy chỉnh...',
+        step: 'Bước',
+        of: 'trên',
+        yes: 'Có',
+        no: 'Không',
+        urgency: 'Mức độ khẩn cấp',
+        emergency: 'Khẩn cấp ngay lập tức (Mối nguy hại Sức khỏe/An toàn)',
+        high: 'Cao (Ảnh hưởng đến khả năng sinh hoạt hàng ngày)',
+        normal: 'Bình thường (Bất tiện nhưng vẫn hoạt động được)',
+        notifiedBefore: 'Bạn đã thông báo cho chủ nhà trước đó chưa?',
+        howNotified: 'Bạn đã thông báo cho họ bằng cách nào?',
+        whenNotified: 'Bạn đã thông báo khi nào?',
+        howManyTimes: 'Bạn đã liên lạc với họ bao nhiêu lần?',
+        childrenInHousehold: 'Có trẻ em dưới 18 tuổi trong nhà không?',
+        seniorsInHousehold: 'Có người cao tuổi (65+) trong nhà không?',
+        disabledInHousehold: 'Có cư dân khuyết tật không?',
+        healthSymptoms: 'Có ai gặp các triệu chứng sức khỏe do vấn đề này gây ra không?',
+        photosAvailable: 'Bạn có ảnh chụp về vấn đề này không?',
+        videosAvailable: 'Bạn có video về vấn đề này không?',
+        receiptsAvailable: 'Bạn có biên lai sửa chữa hoặc giải pháp tạm thời không?',
+        generateSuccess: 'Tạo yêu cầu thành công!',
+        copySuccess: 'Đã sao chép vào bộ nhớ tạm!',
+        print: 'In thư',
+        evidenceTitle: 'Danh sách kiểm tra bằng chứng cá nhân',
+        followUpTitle: 'Thời gian theo dõi đề xuất',
+        outputTabs: {
+          letter: 'Thư chính thức',
+          email: 'Bản thảo Email',
+          sms: 'Tin nhắn văn bản'
+        },
+        tones: {
+          friendly: 'Nhắc nhở thân thiện',
+          professional: 'Yêu cầu chuyên nghiệp',
+          firm: 'Yêu cầu kiên quyết',
+          hazard: 'Nguy hiểm nghiêm trọng / Vi phạm quy chuẩn'
+        },
+        bayAreaCities: [
+          'San Francisco', 'Oakland', 'San Jose', 'Berkeley', 'Richmond', 
+          'Hayward', 'Fremont', 'Vallejo', 'San Mateo', 'Daly City', 
+          'Concord', 'Sunnyvale', 'Santa Clara', 'San Rafael'
+        ],
+        futureToolsTitle: 'Công cụ Nhà ở (Sắp ra mắt)',
+        futureToolsDesc: 'LawLens đang mở rộng để hỗ trợ mọi khía cạnh quyền lợi của người thuê nhà ở Vùng Vịnh.',
+        futureTools: [
+          { title: 'Đòi Lại Tiền Đặt Cọc', desc: 'Yêu cầu trả lại tiền đặt cọc kèm theo lãi suất và các khoản phạt do chủ nhà cố tình chậm trễ.' },
+          { title: 'Giải Quyết Việc Chủ Nhà Vào Nhà Trái Phép', desc: 'Xử lý các hành vi vi phạm quyền riêng tư và những chuyến viếng thăm không báo trước của chủ nhà.' },
+          { title: 'Khiếu Nại Tăng Giá Thuê Nhà', desc: 'Kiểm tra xem mức tăng tiền thuê nhà của bạn có tuân thủ Đạo luật Bảo vệ Người thuê nhà California (AB 1482) hoặc kiểm soát giá địa phương không.' },
+          { title: 'Thông Báo Ngăn Chặn Quấy Rối', desc: 'Chính thức yêu cầu chấm dứt các hành vi quấy rối, đe dọa hoặc cắt giảm dịch vụ.' }
+        ]
+      },
+      tl: {
+        title: 'LawLens Tagagawa ng Kahilingan sa Pag-aayos',
+        subtitle: 'Portal ng Pagpapalakas sa mga Nangungupahan sa Bay Area',
+        dashboard: 'Dashboard',
+        newRequest: 'Bagong Kahilingan sa Pag-aayos',
+        savedRequests: 'Iyong mga Nai-save na Kahilingan',
+        legalDisclaimer: 'Disclaimer: Ang LawLens ay isang tool sa impormasyon at hindi nagbibigay ng legal na payo. Ang paglikha ng sulat na ito ay hindi nagtatatag ng relasyong abogado-kliyente. Mangyaring kumonsulta sa isang abogado ng nangungupahan o legal aid organization kung hindi sumagot ang iyong landlord.',
+        languageSelect: 'Pumili ng Wika',
+        start: 'Simulan ang Panayam',
+        back: 'Bumalik',
+        next: 'Susunod na Tanong',
+        generate: 'Bumuo ng Packet ng Sulat',
+        generating: 'Bumabuo ng customized na legal na sulat...',
+        step: 'Hakbang',
+        of: 'ng',
+        yes: 'Oo',
+        no: 'Hindi',
+        urgency: 'Antas ng Pagkaapurahan',
+        emergency: 'Agarang Emergency (Panganib sa Kalusugan/Seguridad)',
+        high: 'Mataas (Nakaaapekto sa pang-araw-araw na pamumuhay)',
+        normal: 'Normal (May abala ngunit gumagana)',
+        notifiedBefore: 'Naabisuhan mo na ba ang landlord bago ito?',
+        howNotified: 'Paano mo sila naabisuhan?',
+        whenNotified: 'Kailan mo sila naabisuhan?',
+        howManyTimes: 'Ilang beses mo na silang nakontak?',
+        childrenInHousehold: 'Mayroon bang mga bata na wala pang 18 taong gulang sa sambahayan?',
+        seniorsInHousehold: 'Mayroon bang mga nakatatanda (65+) sa sambahayan?',
+        disabledInHousehold: 'Mayroon bang mga residenteng may kapansanan?',
+        healthSymptoms: 'Mayroon bang nakaranas ng mga sintomas sa kalusugan dahil sa isyung ito?',
+        photosAvailable: 'Mayroon ka bang mga larawan ng isyu?',
+        videosAvailable: 'Mayroon ka bang mga video ng isyu?',
+        receiptsAvailable: 'Mayroon ka bang mga resibo para sa mga pag-aayos o pansamantalang solusyon?',
+        generateSuccess: 'Matagumpay na nabuo ang kahilingan!',
+        copySuccess: 'Copied sa clipboard!',
+        print: 'I-print ang Sulat',
+        evidenceTitle: 'Personalized na Checklist ng Katibayan',
+        followUpTitle: 'Inirerekomendang Timeline para sa Susunod na Hakbang',
+        outputTabs: {
+          letter: 'Pormal na Sulat',
+          email: 'Draft ng Email',
+          sms: 'Text Message'
+        },
+        tones: {
+          friendly: 'Kaibigang Paalala',
+          professional: 'Propesyonal na Kahilingan',
+          firm: 'Madiing Pagsubaybay',
+          hazard: 'Seryosong Panganib / Paglabag sa Code'
+        },
+        bayAreaCities: [
+          'San Francisco', 'Oakland', 'San Jose', 'Berkeley', 'Richmond', 
+          'Hayward', 'Fremont', 'Vallejo', 'San Mateo', 'Daly City', 
+          'Concord', 'Sunnyvale', 'Santa Clara', 'San Rafael'
+        ],
+        futureToolsTitle: 'Mga Tool sa Pabahay (Malapit na)',
+        futureToolsDesc: 'Ang LawLens ay lumalawak upang suportahan ang lahat ng aspeto ng mga karapatan ng nangungupahan sa Bay Area.',
+        futureTools: [
+          { title: 'Pagbawi ng Security Deposit', desc: 'Hilingin ang pagbabalik ng iyong security deposit na may interes at mga parusa para sa masamang pananampalataya.' },
+          { title: 'Ilegal na Pagpasok ng Landlord', desc: 'Tugunan ang mga paglabag sa iyong mga karapatan sa pribasya at hindi ipinagbibigay-alam na mga pagbisita ng landlord.' },
+          { title: 'Paghahamon sa Pagtaas ng Upa', desc: 'Suriin kung ang pagtaas ng iyong upa ay sumusunod sa California Tenant Protection Act (AB 1482) o lokal na kontrol sa upa.' },
+          { title: 'Paunawa sa Pangha-harass ng Landlord', desc: 'Pormal na hilingin ang paghinto sa mga mapang-abusong gawi, banta, o pagbabawas ng serbisyo.' }
+        ]
+      }
+    };
+
+    const REPAIR_TYPES = [
+      { id: 'mold', label: { en: 'Mold', es: 'Moho', 'zh-CN': '霉菌', 'zh-TW': '黴菌', vi: 'Nấm mốc', tl: 'Amag' }, icon: '🦠' },
+      { id: 'plumbing', label: { en: 'Plumbing', es: 'Plomería', 'zh-CN': '管道漏水', 'zh-TW': '管道漏水', vi: 'Hệ thống nước', tl: 'Plumbing' }, icon: '🚰' },
+      { id: 'leak', label: { en: 'Roof/Wall Leak', es: 'Fuga en techo/pared', 'zh-CN': '屋顶/墙壁漏水', 'zh-TW': '屋頂/牆壁漏水', vi: 'Rò rỉ trần/tường', tl: 'Tulo sa Bubong/Pader' }, icon: '💧' },
+      { id: 'water_heater', label: { en: 'Water Heater', es: 'Calentador de agua', 'zh-CN': '热水器', 'zh-TW': '熱水器', vi: 'Máy nước nóng', tl: 'Water Heater' }, icon: '🔥' },
+      { id: 'heat', label: { en: 'Heating', es: 'Calefacción', 'zh-CN': '供暖/暖气', 'zh-TW': '供暖/暖氣', vi: 'Hệ thống sưởi', tl: 'Heating' }, icon: '❄️' },
+      { id: 'electricity', label: { en: 'Electricity', es: 'Electricidad', 'zh-CN': '电路/电力', 'zh-TW': '電路/電力', vi: 'Điện', tl: 'Kuryente' }, icon: '⚡' },
+      { id: 'gas', label: { en: 'Gas Leak/Line', es: 'Fuga de gas', 'zh-CN': '燃气泄漏', 'zh-TW': '燃氣洩漏', vi: 'Rò rỉ gas', tl: 'Tagas ng Gas' }, icon: '💨' },
+      { id: 'pests', label: { en: 'Pests / Rodents', es: 'Plagas / Roedores', 'zh-CN': '害虫/鼠患', 'zh-TW': '害蟲/鼠患', vi: 'Côn trùng/Chuột', tl: 'Peste / Daga' }, icon: '🐀' },
+      { id: 'locks', label: { en: 'Door Lock / Security', es: 'Cerradura de puerta', 'zh-CN': '门锁/安保', 'zh-TW': '門鎖/安保', vi: 'Khóa cửa/An ninh', tl: 'Trangka ng Pinto' }, icon: '🔒' },
+      { id: 'window', label: { en: 'Broken Window', es: 'Ventana rota', 'zh-CN': '窗户破损', 'zh-TW': '窗戶破損', vi: 'Cửa sổ vỡ', tl: 'Basag na Bintana' }, icon: '🪟' },
+      { id: 'appliances', label: { en: 'Appliances', es: 'Electrodomésticos', 'zh-CN': '家电故障', 'zh-TW': '家電故障', vi: 'Thiết bị gia dụng', tl: 'Mga Kasangkapan' }, icon: '🔌' },
+      { id: 'smoke_detector', label: { en: 'Smoke Detector', es: 'Detector de humo', 'zh-CN': '烟雾报警器', 'zh-TW': '煙霧報警器', vi: 'Đầu báo khói', tl: 'Smoke Detector' }, icon: '🚨' },
+      { id: 'other', label: { en: 'Other Issue', es: 'Otro problema', 'zh-CN': '其他问题', 'zh-TW': '其他問題', vi: 'Vấn đề khác', tl: 'Ibang Isyu' }, icon: '🛠️' }
+    ];
+
+    const MOCK_INITIAL_REQUESTS = [
+      {
+        id: 'mock-1',
+        tenantName: 'Maria Lopez',
+        rentalAddress: '1428 Fruitvale Ave Apt 3B',
+        city: 'Oakland',
+        landlordName: 'Pine Crest Property Management',
+        repairType: 'mold',
+        dateBegan: '2026-06-15',
+        urgency: 'high',
+        status: 'Awaiting Response',
+        createdAt: '2026-06-20',
+        tone: 'professional',
+        language: 'es',
+        letterText: `ESTIMADO PROPIETARIO:\n\nPor medio de la presente, solicito formalmente la reparación de un problema grave de moho en mi apartamento situado en 1428 Fruitvale Ave Apt 3B, Oakland. El moho se encuentra en el baño y cubre un área mediana.\n\nEste problema comenzó el 2026-06-15 y representa un riesgo para la habitabilidad según el Código Civil de California 1941.1. Le pido que programe la reparación a la brevedad.\n\nAtentamente,\nMaria Lopez`,
+        emailText: `Asunto: Solicitud Urgente de Reparación de Moho - Apt 3B\n\nEstimado propietario,\nLe escribo para solicitar formalmente la remoción de moho de mi baño...`,
+        smsText: `Hola, le escribo para avisar que el moho en el baño del Apt 3B sigue sin repararse. Favor de responder.`,
+        history: [
+          { date: '2026-06-20', type: 'system', text: 'Documento de solicitud de reparación generado.' },
+          { date: '2026-06-21', type: 'tenant', text: 'Envié la carta formal por correo certificado.' }
+        ]
+      },
+      {
+        id: 'mock-2',
+        tenantName: 'David Chen',
+        rentalAddress: '855 Clay St Apt 12',
+        city: 'San Francisco',
+        landlordName: 'Vanguard Realty',
+        repairType: 'heat',
+        dateBegan: '2026-07-10',
+        urgency: 'emergency',
+        status: 'Submitted',
+        createdAt: '2026-07-12',
+        tone: 'hazard',
+        language: 'zh-CN',
+        letterText: `尊敬的房东/物业管理：\n\n我是您的租户 David Chen，居住在旧金山 855 Clay St Apt 12。我于 2026-07-10 发现公寓暖气系统彻底失效。由于目前夜间温度极低，没有暖气已严重违反了《加州民法典》第 1941.1 条关于提供适当供暖设施的居住标准。\n\n我此前已多次通过电话联系。请在24小时内安排紧急维修，否则我保留向旧金山房屋管理局报告此违规行为的权利。\n\n祝好，\nDavid Chen`,
+        emailText: `主题: 紧急供暖维修请求 - 855 Clay St Apt 12\n\n尊敬的房东...\n由于暖气故障，夜间十分寒冷...`,
+        smsText: `你好房东，Apt 12 暖气坏了非常冷，请立刻安排师傅维修。谢谢。`,
+        history: [
+          { date: '2026-07-12', type: 'system', text: '紧急安全隐患维修申请信生成。' }
+        ]
+      }
+    ];
+
+    function App() {
+      const [language, setLanguage] = useState('en');
+      const [view, setView] = useState('dashboard');
+      const [requests, setRequests] = useState(() => {
+        const saved = localStorage.getItem('lawlens_requests');
+        return saved ? JSON.parse(saved) : MOCK_INITIAL_REQUESTS;
+      });
+      
+      const [currentStep, setCurrentStep] = useState(1);
+      const [formData, setFormData] = useState({
+        tenantName: '', rentalAddress: '', apartmentNum: '', city: '',
+        landlordName: '', landlordPhone: '', landlordEmail: '', prefContact: 'email',
+        repairType: '', moldLocation: '', moldSize: '', leakLocation: '', hasSymptom: '',
+        heatDays: '', pestType: '', repairDescription: '', dateBegan: '',
+        notifiedBefore: 'no', notifiedCount: '0', notifiedMethod: '', urgency: 'normal',
+        children: 'no', seniors: 'no', disabled: 'no', hasEmergency: 'no',
+        photos: 'no', videos: 'no', receipts: 'no', selectedTone: 'professional'
+      });
+
+      const [selectedRequest, setSelectedRequest] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [activeOutputTab, setActiveOutputTab] = useState('letter');
+
+      useEffect(() => {
+        localStorage.setItem('lawlens_requests', JSON.stringify(requests));
+      }, [requests]);
+
+      // Hook up dynamic Lucide icons whenever state shifts views
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      }, [view, currentStep, selectedRequest, activeOutputTab]);
+
+      const t = UI_TRANSLATIONS[language] || UI_TRANSLATIONS['en'];
+
+      const handleInputChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+      };
+
+      const handleStartNewRequest = () => {
+        setFormData({
+          tenantName: '', rentalAddress: '', apartmentNum: '', city: '',
+          landlordName: '', landlordPhone: '', landlordEmail: '', prefContact: 'email',
+          repairType: '', moldLocation: '', moldSize: '', leakLocation: '', hasSymptom: 'no',
+          heatDays: '', pestType: '', repairDescription: '',
+          dateBegan: new Date().toISOString().split('T')[0],
+          notifiedBefore: 'no', notifiedCount: '0', notifiedMethod: '', urgency: 'normal',
+          children: 'no', seniors: 'no', disabled: 'no', hasEmergency: 'no',
+          photos: 'no', videos: 'no', receipts: 'no', selectedTone: 'professional'
+        });
+        setCurrentStep(1);
+        setView('interview');
+      };
+
+      const steps = [
+        { id: 1, title: { en: 'Tenant Profile & Location', es: 'Perfil del inquilino y ubicación', 'zh-CN': '租户基本信息与地址', 'zh-TW': '租戶基本信息與地址', vi: 'Hồ sơ người thuê & Địa điểm', tl: 'Profile at Lokasyon ng Nangungupahan' } },
+        { id: 2, title: { en: 'Select Repair Issue', es: 'Seleccionar problema de reparación', 'zh-CN': '选择需要维修的问题', 'zh-TW': '選擇需要維修的問題', vi: 'Chọn sự cố cần sửa chữa', tl: 'Pumili ng Isyu sa Pag-aayos' } },
+        { id: 3, title: { en: 'Repair Details & History', es: 'Detalles de la reparación e historia', 'zh-CN': '具体受损详情与历史', 'zh-TW': '具體受損詳情與歷史', vi: 'Chi tiết sửa chữa & Lịch sử', tl: 'Mga Detalye ng Pag-aayos at Kasaysayan' } },
+        { id: 4, title: { en: 'Landlord & Communication Info', es: 'Propietario e información de contacto', 'zh-CN': '房东与联络信息', 'zh-TW': '房東與聯絡信息', vi: 'Chủ nhà & Thông tin liên lạc', tl: 'Impormasyon ng Landlord at Komunikasyon' } },
+        { id: 5, title: { en: 'Urgency & Household Status', es: 'Urgencia y estado del hogar', 'zh-CN': '紧急程度与家庭成员状况', 'zh-TW': '緊急程度與家庭成員狀況', vi: 'Mức độ khẩn cấp & Tình trạng hộ gia đình', tl: 'Pagkaapurahan at Katayuan ng Sambahayan' } },
+        { id: 6, title: { en: 'Available Evidence & Tone Settings', es: 'Evidencia disponible y configuración de tono', 'zh-CN': '现有证据与信件语气设置', 'zh-TW': '現有證據與信件語氣設置', vi: 'Bằng chứng hiện có & Cài đặt tông giọng', tl: 'Mga Katibayan at Setting ng Tono' } }
+      ];
+
+      const handleNextStep = () => {
+        if (currentStep < steps.length) {
+          setCurrentStep(currentStep + 1);
+        } else {
+          generateRequestPacket();
+        }
+      };
+
+      const handlePrevStep = () => {
+        if (currentStep > 1) {
+          setCurrentStep(currentStep - 1);
+        }
+      };
+
+      const generateLocalTexts = (data, lang) => {
+        const tone = data.selectedTone;
+        const issueObj = REPAIR_TYPES.find(r => r.id === data.repairType);
+        const issueLabel = issueObj ? issueObj.label[lang] : data.repairType;
+        
+        const templates = {
+          en: {
+            subject: `URGENT: Repair Request for Habitability Issue - Apt ${data.apartmentNum || ''}`,
+            salutation: `Dear ${data.landlordName || 'Landlord / Property Manager'},`,
+            opening: `I am writing to formally request repairs to my rental unit at ${data.rentalAddress} ${data.apartmentNum ? 'Unit ' + data.apartmentNum : ''}, ${data.city || 'Bay Area'}.`,
+            body: `Specifically, there is an issue regarding: ${issueLabel.toUpperCase()}.\n\nDetails of the issue: ${data.repairDescription || 'The issue requires immediate landlord evaluation and repair.'}\n\nThis issue began on ${data.dateBegan || 'recently'}. Under California Civil Code Section 1941.1, landlords are legally required to maintain tenant premises in a tenantable condition fit for human occupation.`,
+            urgencySection: data.urgency === 'emergency' 
+              ? `Because this issue poses an immediate threat to health or safety, I kindly request that you contact a licensed professional to address this within 24 hours.`
+              : `Please contact me immediately to schedule a time for an inspector or licensed repair specialist to visit.`,
+            closing: `Thank you for your prompt attention to this matter. I look forward to your quick response to schedule repairs.\n\nSincerely,\n${data.tenantName}`,
+            sms: `Hi ${data.landlordName || 'Landlord'}, this is ${data.tenantName} at Apt ${data.apartmentNum || ''}. I'm texting to request urgent repair for ${issueLabel}: ${data.repairDescription || ''}. Please let me know when a repair person can come.`
+          },
+          es: {
+            subject: `URGENTE: Solicitud de Reparación para Problema de Habitabilidad - Apt ${data.apartmentNum || ''}`,
+            salutation: `Estimado ${data.landlordName || 'Propietario / Administrador de la Propiedad'},`,
+            opening: `Le escribo para solicitar formalmente reparaciones en mi unidad de alquiler ubicada en ${data.rentalAddress} ${data.apartmentNum ? 'Apt ' + data.apartmentNum : ''}, ${data.city || 'Área de la Bahía'}.`,
+            body: `Específicamente, hay un problema con: ${issueLabel.toUpperCase()}.\n\nDetalles del problema: ${data.repairDescription || 'El problema requiere evaluación y reparación inmediata del arrendador.'}\n\nEste problema comenzó el ${data.dateBegan || 'recientemente'}. Según el Código Civil de California, Sección 1941.1, los propietarios están legalmente obligados a mantener los locales de alquiler en condiciones habitables y aptas para la ocupación humana.`,
+            urgencySection: data.urgency === 'emergency'
+              ? `Debido a que este problema representa una amenaza inmediata para la salud o la seguridad, le solicito amablemente que se comunique con un profesional autorizado para abordar esto dentro de las próximas 24 horas.`
+              : `Comuníquese conmigo de inmediato para programar una cita para que nos visite un inspector o un especialista en reparaciones autorizado.`,
+            closing: `Gracias por su pronta atención a este asunto. Espero su rápida respuesta para programar las reparaciones.\n\nAtentamente,\n${data.tenantName}`,
+            sms: `Hola ${data.landlordName || 'Propietario'}, soy ${data.tenantName} del Apt ${data.apartmentNum || ''}. Le escribo para solicitar la reparación urgente de ${issueLabel}: ${data.repairDescription || ''}. Por favor, avíseme cuándo puede venir un técnico.`
+          }
+        };
+
+        const sel = templates[lang] || templates['en'];
+        const letterText = `${new Date().toLocaleDateString(lang === 'en' ? 'en-US' : lang)}\n\n${sel.salutation}\n\n${sel.opening}\n\n${sel.body}\n\n${sel.urgencySection}\n\n${sel.closing}\n\n---\n*${t.legalDisclaimer}*`;
+        const emailText = `${sel.subject}\n\n${sel.salutation}\n\n${sel.opening}\n\n${sel.body}\n\n${sel.urgencySection}\n\n${sel.closing}`;
+        const smsText = sel.sms;
+
+        return { letterText, emailText, smsText };
+      };
+
+      const generateRequestPacket = async () => {
+        setLoading(true);
+        setView('result');
+
+        const fallback = generateLocalTexts(formData, language);
+        const newRequest = {
+          id: 'req-' + Date.now(),
+          ...formData,
+          status: 'Submitted',
+          createdAt: new Date().toISOString().split('T')[0],
+          letterText: fallback.letterText,
+          emailText: fallback.emailText,
+          smsText: fallback.smsText,
+          history: [{ date: new Date().toISOString().split('T')[0], type: 'system', text: 'Document Packet Generated.' }]
+        };
+
+        setRequests(prev => [newRequest, ...prev]);
+        setSelectedRequest(newRequest);
+        setLoading(false);
+      };
+
+      const handleDeleteRequest = (id, e) => {
+        e.stopPropagation();
+        setRequests(prev => prev.filter(r => r.id !== id));
+        if (selectedRequest?.id === id) {
+          setSelectedRequest(null);
+        }
+      };
+
+      const copyToClipboard = (text) => {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          alert(t.copySuccess);
+        } catch (err) {
+          console.error(err);
+        }
+        document.body.removeChild(textArea);
+      };
+
+      const getStatusBadge = (status) => {
+        switch (status) {
+          case 'Submitted':
+            return <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">Sent / Submitted</span>;
+          case 'Awaiting Response':
+            return <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">Awaiting Landlord</span>;
+          case 'Resolved':
+            return <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">Resolved</span>;
+          default:
+            return <span className="px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded-full">{status}</span>;
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
+          
+          <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm backdrop-blur-md bg-white/95">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('dashboard')}>
+                <div className="p-2 bg-gradient-to-tr from-teal-600 to-emerald-500 rounded-xl text-white shadow-md">
+                  <ShieldAlert />
+                </div>
+                <div>
+                  <h1 className="text-xl font-black tracking-tight text-slate-800 flex items-center gap-1">
+                    Law<span className="text-teal-600">Lens</span>
+                  </h1>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                  <Languages />
+                  <select 
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-pointer pr-1"
+                  >
+                    {LANGUAGES.map(lang => (
+                      <option key={lang.code} value={lang.code}>{lang.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {view !== 'dashboard' && (
+                  <button 
+                    onClick={() => setView('dashboard')}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition"
+                  >
+                    {t.dashboard}
+                  </button>
+                )}
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="mb-6 p-3 bg-teal-50 border border-teal-200 rounded-xl flex items-start gap-3">
+              <Info />
+              <p className="text-xs text-teal-900 leading-relaxed">
+                <strong>Habitability Fact Sheet:</strong> California Civil Code § 1941.1 guarantees that landlords must provide safe, clean, mold-free housing.
+              </p>
+            </div>
+
+            {view === 'dashboard' && (
+              <div className="space-y-8">
+                <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 rounded-2xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                  <div className="space-y-2 max-w-xl">
+                    <div className="inline-flex items-center gap-1 px-3 py-1 bg-teal-500/20 border border-teal-500/30 rounded-full text-teal-300 text-xs font-bold">
+                      <Sparkles /> AI-Powered Housing Advocate
+                    </div>
+                    <h2 className="text-2xl sm:text-3.5xl font-extrabold tracking-tight">
+                      Protect Your Home. Enforce Your Rights.
+                    </h2>
+                  </div>
+                  <button 
+                    onClick={handleStartNewRequest}
+                    className="shrink-0 flex items-center gap-2 px-6 py-4 bg-teal-500 hover:bg-teal-400 text-slate-900 font-extrabold text-lg rounded-2xl shadow-lg transition transform active:scale-95"
+                  >
+                    <Plus />
+                    {t.newRequest}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-1 space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <h3 className="font-bold text-slate-700 text-lg flex items-center gap-2">
+                        <FileText />
+                        {t.savedRequests}
+                      </h3>
+                    </div>
+
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                      {requests.map(req => {
+                        const iconObj = REPAIR_TYPES.find(r => r.id === req.repairType);
+                        return (
+                          <div 
+                            key={req.id}
+                            onClick={() => setSelectedRequest(req)}
+                            className={`p-4 rounded-xl border transition cursor-pointer flex justify-between items-start ${
+                              selectedRequest?.id === req.id 
+                                ? 'bg-teal-50/50 border-teal-500 shadow-sm' 
+                                : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                            }`}
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl">{iconObj?.icon || '🛠️'}</span>
+                                <div>
+                                  <h4 className="font-bold text-slate-800 text-sm">
+                                    {iconObj?.label[language] || req.repairType}
+                                  </h4>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {getStatusBadge(req.status)}
+                              </div>
+                            </div>
+                            <button 
+                              onClick={(e) => handleDeleteRequest(req.id, e)}
+                              className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition"
+                            >
+                              <Trash2 />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-2 space-y-6">
+                    {selectedRequest ? (
+                      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-xl font-bold text-slate-800">
+                                {REPAIR_TYPES.find(r => r.id === selectedRequest.repairType)?.label[language] || selectedRequest.repairType} Request
+                              </h3>
+                              {getStatusBadge(selectedRequest.status)}
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => window.print()}
+                            className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition"
+                          >
+                            <Printer /> {t.print}
+                          </button>
+                        </div>
+
+                        <div>
+                          <div className="flex border-b border-slate-200">
+                            <button 
+                              onClick={() => setActiveOutputTab('letter')}
+                              className={`flex items-center gap-2 px-4 py-2.5 font-bold text-sm border-b-2 transition -mb-[2px] ${activeOutputTab === 'letter' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500'}`}
+                            >
+                              <FileText className="w-4 h-4" /> {t.outputTabs.letter}
+                            </button>
+                            <button 
+                              onClick={() => setActiveOutputTab('email')}
+                              className={`flex items-center gap-2 px-4 py-2.5 font-bold text-sm border-b-2 transition -mb-[2px] ${activeOutputTab === 'email' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500'}`}
+                            >
+                              <Mail /> {t.outputTabs.email}
+                            </button>
+                            <button 
+                              onClick={() => setActiveOutputTab('sms')}
+                              className={`flex items-center gap-2 px-4 py-2.5 font-bold text-sm border-b-2 transition -mb-[2px] ${activeOutputTab === 'sms' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500'}`}
+                            >
+                              <MessageSquare /> {t.outputTabs.sms}
+                            </button>
+                          </div>
+
+                          <div className="mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl relative">
+                            <button 
+                              onClick={() => copyToClipboard(activeOutputTab === 'letter' ? selectedRequest.letterText : activeOutputTab === 'email' ? selectedRequest.emailText : selectedRequest.smsText)}
+                              className="absolute top-3 right-3 p-2 bg-white hover:bg-slate-100 text-slate-500 rounded-lg border border-slate-200 shadow-sm transition flex items-center gap-1 text-xs"
+                            >
+                              <Copy /> Copy Text
+                            </button>
+                            <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700 leading-relaxed max-h-[400px] overflow-y-auto">
+                              {activeOutputTab === 'letter' && selectedRequest.letterText}
+                              {activeOutputTab === 'email' && selectedRequest.emailText}
+                              {activeOutputTab === 'sms' && selectedRequest.smsText}
+                            </pre>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                          <div className="space-y-3">
+                            <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                              <CheckSquare /> {t.evidenceTitle}
+                            </h4>
+                          </div>
+                          <div className="space-y-3">
+                            <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                              <Clock /> {t.followUpTitle}
+                            </h4>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-slate-100/50 border-2 border-dashed border-slate-300 rounded-2xl p-12 text-center space-y-4">
+                        <FileText className="w-12 h-12 text-slate-400 mx-auto" />
+                        <div>
+                          <h4 className="font-bold text-slate-700">No Request Selected</h4>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-slate-100 rounded-2xl p-6 border border-slate-200 mt-12 space-y-6">
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-xl flex items-center gap-2">
+                      <Layers /> {t.futureToolsTitle}
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {t.futureTools.map((tool, idx) => (
+                      <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 flex flex-col justify-between opacity-80 cursor-not-allowed">
+                        <div className="space-y-2">
+                          <h4 className="font-bold text-slate-800 text-sm">{tool.title}</h4>
+                          <p className="text-xs text-slate-500">{tool.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {view === 'interview' && (
+              <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden">
+                <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-6 sm:px-8 py-5 text-white flex justify-between items-center">
+                  <div>
+                    <span className="text-xs uppercase tracking-widest text-teal-400 font-bold">
+                      {t.step} {currentStep} {t.of} {steps.length}
+                    </span>
+                    <h3 className="text-lg font-bold">
+                      {steps[currentStep-1].title[language]}
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="w-full h-1.5 bg-slate-100">
+                  <div className="h-full bg-teal-500 transition-all duration-300" style={{ width: `${(currentStep / steps.length) * 100}%` }}></div>
+                </div>
+
+                <div className="p-6 sm:p-8 space-y-6">
+                  {currentStep === 1 && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                            <User /> Full Tenant Name
+                          </label>
+                          <input 
+                            type="text" 
+                            value={formData.tenantName}
+                            onChange={(e) => handleInputChange('tenantName', e.target.value)}
+                            placeholder="John Doe" 
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                            <Home /> Rental Street Address
+                          </label>
+                          <input 
+                            type="text" 
+                            value={formData.rentalAddress}
+                            onChange={(e) => handleInputChange('rentalAddress', e.target.value)}
+                            placeholder="123 Mission St" 
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {currentStep === 2 && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {REPAIR_TYPES.map(repair => (
+                          <div 
+                            key={repair.id}
+                            onClick={() => handleInputChange('repairType', repair.id)}
+                            className={`p-4 rounded-xl border text-center cursor-pointer transition flex flex-col items-center justify-center gap-2 ${formData.repairType === repair.id ? 'bg-teal-50 border-teal-500' : 'bg-slate-50'}`}
+                          >
+                            <span className="text-3xl">{repair.icon}</span>
+                            <span className="text-xs font-bold">{repair.label[language]}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {currentStep === 3 && (
+                    <div className="space-y-6">
+                      <textarea 
+                        rows={4}
+                        value={formData.repairDescription}
+                        onChange={(e) => handleInputChange('repairDescription', e.target.value)}
+                        placeholder="Describe the problem..."
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"
+                      ></textarea>
+                    </div>
+                  )}
+
+                  {currentStep === 4 && (
+                    <div className="space-y-6">
+                      <input 
+                        type="text" 
+                        value={formData.landlordName}
+                        onChange={(e) => handleInputChange('landlordName', e.target.value)}
+                        placeholder="Landlord Name" 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"
+                      />
+                    </div>
+                  )}
+
+                  {currentStep === 5 && (
+                    <div className="space-y-6">
+                      <div 
+                        onClick={() => handleInputChange('urgency', 'normal')}
+                        className={`p-4 rounded-xl border cursor-pointer ${formData.urgency === 'normal' ? 'bg-teal-50 border-teal-500' : 'bg-slate-50'}`}
+                      >
+                        Normal Urgency
+                      </div>
+                    </div>
+                  )}
+
+                  {currentStep === 6 && (
+                    <div className="space-y-6">
+                      <div 
+                        onClick={() => handleInputChange('selectedTone', 'professional')}
+                        className="p-3 bg-teal-50 rounded-xl border border-teal-500 text-center cursor-pointer"
+                      >
+                        Tone: Professional Request
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-slate-50 border-t border-slate-100 px-6 sm:px-8 py-5 flex justify-between items-center">
+                  <button 
+                    onClick={handlePrevStep}
+                    disabled={currentStep === 1}
+                    className="flex items-center gap-1 px-4 py-2 text-sm font-bold rounded-xl"
+                  >
+                    <ChevronLeft /> {t.back}
+                  </button>
+
+                  <button 
+                    onClick={handleNextStep}
+                    className="flex items-center gap-1 px-6 py-3 bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm rounded-xl"
+                  >
+                    {currentStep === steps.length ? t.generate : t.next}
+                    <ChevronRight />
+                  </button>
+                </div>
+              </div>
+            )}
+          </main>
+
+          <footer className="border-t border-slate-200 bg-white mt-20 py-10 text-slate-500 text-xs text-center">
+            <div className="max-w-7xl mx-auto px-4">
+              <p>© 2026 LawLens Housing Rights Coalition. Built with clean, age-appropriate educational guidelines.</p>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
