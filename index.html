@@ -114,12 +114,12 @@
       const [loading, setLoading] = useState(false);
       const [activeOutputTab, setActiveOutputTab] = useState('letter');
 
-      // 1. Initialize Firebase outside component lifecycle
+      // 1. Initialize Firebase with User's Custom Config
       useEffect(() => {
         if (!window.FirebaseHelper) return;
         const { initializeApp, getAuth, getFirestore } = window.FirebaseHelper;
         
-        // Use environment config if available, otherwise use a placeholder to prevent crash
+        // Custom Configuration provided by user
         const firebaseConfig = {
           apiKey: "AIzaSyCTHUAMQFbVxqy8PCbVULY4CUjw5-Hbcho",
           authDomain: "lawlens-tenant-app.firebaseapp.com",
@@ -128,21 +128,22 @@
           messagingSenderId: "393252445237",
           appId: "1:393252445237:web:34bb4fb800ff2712bce57c"
         };
-        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-          firebaseConfig = JSON.parse(__firebase_config);
+        
+        try {
+          const fApp = initializeApp(firebaseConfig);
+          const fAuth = getAuth(fApp);
+          const fDb = getFirestore(fApp);
+          const cAppId = typeof __app_id !== 'undefined' ? __app_id : 'lawlens-default';
+          
+          setAuth(fAuth);
+          setDb(fDb);
+          setAppId(cAppId);
+        } catch (e) {
+          console.error("Firebase initialization failed:", e);
         }
-        
-        const fApp = initializeApp(firebaseConfig);
-        const fAuth = getAuth(fApp);
-        const fDb = getFirestore(fApp);
-        const cAppId = typeof __app_id !== 'undefined' ? __app_id : 'lawlens-default';
-        
-        setAuth(fAuth);
-        setDb(fDb);
-        setAppId(cAppId);
       }, []);
 
-      // 2. Auth Init and Listener (MANDATORY FIREBASE RULES)
+      // 2. Auth Init and Listener (MANDATORY FIREBASE RULES WITH GRACEFUL TOKEN ERROR FALLBACK)
       useEffect(() => {
         if (!auth) return;
         const { signInWithCustomToken, signInAnonymously, onAuthStateChanged } = window.FirebaseHelper;
@@ -150,7 +151,13 @@
         const initAuth = async () => {
           try {
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              await signInWithCustomToken(auth, __initial_auth_token);
+              try {
+                await signInWithCustomToken(auth, __initial_auth_token);
+              } catch (tokenError) {
+                // Handle token mismatch gracefully (common when custom Firebase project configuration is entered manually)
+                console.warn("Custom token mismatch occurred. Safely falling back to anonymous authentication.", tokenError);
+                await signInAnonymously(auth);
+              }
             } else {
               await signInAnonymously(auth);
             }
@@ -193,6 +200,35 @@
         if (window.lucide) window.lucide.createIcons();
       }, [view, currentStep, selectedRequest, activeOutputTab, appUser]);
 
+      // Helper to translate robotic errors to friendly, encouraging help text
+      const getFriendlyErrorMessage = (error) => {
+        const code = error.code || error.message || "";
+        
+        if (code.includes('api-key-not-valid') || code.includes('invalid-api-key')) {
+          return "Settings Check Needed: The website's Database Key (API Key) is currently incorrect or still being set up. Please double-check your Firebase keys in Step 5 of the guide!";
+        }
+        if (code.includes('auth/invalid-email') || code.includes('invalid-email')) {
+          return "Email Format Check: Please enter a valid email address, like yourname@example.com.";
+        }
+        if (code.includes('auth/weak-password') || code.includes('weak-password')) {
+          return "Password Too Short: For your security, please create a password that is at least 6 characters long.";
+        }
+        if (code.includes('auth/email-already-in-use') || code.includes('email-already-in-use')) {
+          return "Account Already Exists: An account with this email already exists! Try switching to 'Sign In' instead.";
+        }
+        if (code.includes('auth/wrong-password') || code.includes('wrong-password') || code.includes('invalid-credential')) {
+          return "Incorrect Log In: The email or password entered does not match our records. Please try again or sign up for a new account.";
+        }
+        if (code.includes('auth/user-not-found') || code.includes('user-not-found')) {
+          return "No Account Found: We couldn't find an account with this email. Check your spelling or click Sign Up below.";
+        }
+        if (code.includes('auth/network-request-failed') || code.includes('network-error')) {
+          return "Internet Connection Check: It looks like you're offline or having network trouble. Please check your connection and try again.";
+        }
+        
+        return "Oops! Something went wrong on our end. Please check your details and try again shortly.";
+      };
+
       // === AUTHENTICATION HANDLERS ===
       const handleAuthSubmit = async (e) => {
         e.preventDefault();
@@ -210,7 +246,7 @@
             await signInWithEmailAndPassword(auth, authEmail, authPassword);
           }
         } catch (error) {
-          setAuthError(error.message.replace('Firebase: ', ''));
+          setAuthError(getFriendlyErrorMessage(error));
         }
         setAuthLoading(false);
       };
@@ -400,7 +436,7 @@
               <div className="bg-white py-8 px-4 shadow sm:rounded-xl sm:px-10 border border-slate-200">
                 <form className="space-y-6" onSubmit={handleAuthSubmit}>
                   {authError && (
-                    <div className="p-3 bg-rose-50 text-rose-700 text-sm rounded-lg font-medium">
+                    <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-semibold leading-relaxed">
                       {authError}
                     </div>
                   )}
