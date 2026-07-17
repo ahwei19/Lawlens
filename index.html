@@ -120,15 +120,7 @@
         const { initializeApp, getAuth, getFirestore } = window.FirebaseHelper;
         
         // Use environment config if available, otherwise use a placeholder to prevent crash
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-          apiKey: "AIzaSyCTHUAMQFbVxqy8PCbVULY4CUjw5-Hbcho",
-          authDomain: "lawlens-tenant-app.firebaseapp.com",
-          projectId: "lawlens-tenant-app",
-          storageBucket: "lawlens-tenant-app.firebasestorage.app",
-          messagingSenderId: "393252445237",
-          appId: "1:393252445237:web:34bb4fb800ff2712bce57c"
-        };
+        let firebaseConfig = { apiKey: "demo", projectId: "demo" };
         if (typeof __firebase_config !== 'undefined' && __firebase_config) {
           firebaseConfig = JSON.parse(__firebase_config);
         }
@@ -153,8 +145,6 @@
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
               await signInWithCustomToken(auth, __initial_auth_token);
             } else {
-              // We call anonymous first to satisfy the prompt mandate, 
-              // but we will hide it behind our custom login UI later.
               await signInAnonymously(auth);
             }
           } catch (e) {
@@ -164,7 +154,6 @@
         initAuth();
 
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-          // If the user logged in with an explicit account, or they are in the canvas environment (custom token), grant access
           if (user && (!user.isAnonymous || (typeof __initial_auth_token !== 'undefined' && __initial_auth_token))) {
             setAppUser(user);
           } else {
@@ -349,14 +338,18 @@
 
         const { doc, setDoc } = window.FirebaseHelper;
         try {
-          await setDoc(doc(db, 'artifacts', appId, 'users', appUser.uid, 'requests', newRequest.id), newRequest);
+          if (db && appUser) {
+            await setDoc(doc(db, 'artifacts', appId, 'users', appUser.uid, 'requests', newRequest.id), newRequest);
+          }
           setSelectedRequest(newRequest);
         } catch (error) {
           console.error("Error saving request to Firestore:", error);
-          alert("Could not save to cloud storage, but document was generated.");
+          setSelectedRequest(newRequest); // Show locally anyway
+          alert("Could not save to cloud database, but your letters were successfully generated and are shown below!");
         }
         
         setLoading(false);
+        setView('dashboard'); // Redirect back to show the generated letter on the dashboard
       };
 
       const handleDeleteRequest = async (id, e) => {
