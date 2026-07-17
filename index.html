@@ -120,7 +120,15 @@
         const { initializeApp, getAuth, getFirestore } = window.FirebaseHelper;
         
         // Use environment config if available, otherwise use a placeholder to prevent crash
-        let firebaseConfig = { apiKey: "demo", projectId: "demo" };
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyCTHUAMQFbVxqy8PCbVULY4CUjw5-Hbcho",
+          authDomain: "lawlens-tenant-app.firebaseapp.com",
+          projectId: "lawlens-tenant-app",
+          storageBucket: "lawlens-tenant-app.firebasestorage.app",
+          messagingSenderId: "393252445237",
+          appId: "1:393252445237:web:34bb4fb800ff2712bce57c"
+        };
         if (typeof __firebase_config !== 'undefined' && __firebase_config) {
           firebaseConfig = JSON.parse(__firebase_config);
         }
