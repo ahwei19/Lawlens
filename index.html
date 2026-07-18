@@ -23,25 +23,26 @@
     .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Optimized CSS Styles for Flawless PDF Printing */
+    /* Robust CSS Styles for Flawless PDF Printing */
     @media print {
-      header, main, footer, .no-print {
-        display: none !important;
+      body * {
+        visibility: hidden;
       }
-      body {
-        background-color: white !important;
-        color: black !important;
+      #printable-letter, #printable-letter * {
+        visibility: visible;
       }
       #printable-letter {
-        display: block !important;
         position: absolute;
         left: 0;
         top: 0;
         width: 100%;
-        padding: 0;
         margin: 0;
-        background: white !important;
+        padding: 0;
+        background-color: white !important;
         color: black !important;
+      }
+      .no-print {
+        display: none !important;
       }
       .print-no-break {
         page-break-inside: avoid;
@@ -59,8 +60,7 @@
       onAuthStateChanged, 
       createUserWithEmailAndPassword, 
       signInWithEmailAndPassword, 
-      signOut,
-      sendEmailVerification
+      signOut
     } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
     import { 
       getFirestore, 
@@ -77,7 +77,7 @@
 
     window.FirebaseHelper = {
       initializeApp, getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, 
-      createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendEmailVerification,
+      createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
       getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, addDoc, updateDoc, deleteDoc
     };
   </script>
@@ -121,8 +121,6 @@
     const LogOut = () => <i data-lucide="log-out" className="w-4 h-4"></i>;
     const Camera = () => <i data-lucide="camera" className="w-5 h-5"></i>;
     const XCircle = () => <i data-lucide="x-circle" className="w-4 h-4 text-white"></i>;
-    const CheckCircle = ({ className }) => <i data-lucide="check-circle" className={className || "w-4 h-4 text-emerald-600"}></i>;
-    const RefreshCw = () => <i data-lucide="refresh-cw" className="w-4 h-4"></i>;
 
     // Full 6 Languages Setup
     const LANGUAGES = [
@@ -160,9 +158,8 @@
         next: 'Next Step',
         saveGenerate: 'Save & Generate',
         instructionsTitle: 'How to Use LawLens',
-        verifyAlert: 'Please check your inbox to verify your email address to unlock saved letter history fully!',
         instructionSteps: [
-          'Create Your Account & confirm your email address.',
+          'Create your account to securely store your records.',
           'Complete the Guided Interview answering standard housing questions.',
           'Review, download as PDF, or copy your generated formal documents.'
         ]
@@ -180,10 +177,9 @@
         next: 'Siguiente Paso',
         saveGenerate: 'Guardar y Generar',
         instructionsTitle: 'Cómo usar LawLens',
-        verifyAlert: '¡Revise su bandeja de entrada para verificar su correo electrónico y activar su historial de cartas!',
         instructionSteps: [
-          'Cree su cuenta y confirme su dirección de correo electrónico.',
-          'Complete la entrevista guiada respondiendo preguntas de vivienda común.',
+          'Cree su cuenta para guardar sus registros de forma segura.',
+          'Complete la entrevista guiada respondiendo preguntas de vivienda.',
           'Revise, descargue como PDF o copie los documentos generados.'
         ]
       },
@@ -200,9 +196,8 @@
         next: '下一步',
         saveGenerate: '保存并生成',
         instructionsTitle: '如何使用 LawLens',
-        verifyAlert: '请检查您的收件箱以验证您的邮箱，解锁保存历史！',
         instructionSteps: [
-          '创建您的账户并验证邮箱地址。',
+          '创建您的账户以安全地存储您的记录。',
           '完成关于基本住房问题的引导式问答。',
           '查看、下载为 PDF，或复制您生成的正式法律公函。'
         ]
@@ -220,9 +215,8 @@
         next: '下一步',
         saveGenerate: '保存並生成',
         instructionsTitle: '如何使用 LawLens',
-        verifyAlert: '請檢查您的收件箱以驗證您的郵箱，解鎖保存歷史！',
         instructionSteps: [
-          '創建您的帳戶並驗證郵箱地址。',
+          '創建您的帳戶以安全地存儲您的記錄。',
           '完成關於基本住房問題的引導式問答。',
           '查看、下載為 PDF，或複製您生成的正式法律公函。'
         ]
@@ -240,9 +234,8 @@
         next: 'Bước tiếp theo',
         saveGenerate: 'Lưu & Tạo',
         instructionsTitle: 'Cách sử dụng LawLens',
-        verifyAlert: 'Vui lòng kiểm tra hộp thư đến để xác minh địa chỉ email của bạn nhằm mở khóa đầy đủ lịch sử thư!',
         instructionSteps: [
-          'Tạo tài khoản và xác minh địa chỉ email của bạn.',
+          'Tạo tài khoản của bạn để lưu trữ an toàn hồ sơ.',
           'Hoàn thành phỏng vấn được hướng dẫn trả lời các câu hỏi về nhà ở thông thường.',
           'Xem xét, tải xuống dưới dạng PDF hoặc sao chép tài liệu chính thức đã tạo của bạn.'
         ]
@@ -260,9 +253,8 @@
         next: 'Susunod na Hakbang',
         saveGenerate: 'I-save at I-generate',
         instructionsTitle: 'Paano Gamitin ang LawLens',
-        verifyAlert: 'Paki-tsek ang iyong inbox upang i-verify ang iyong email address para ganap na magamit ang kasaysayan ng sulat!',
         instructionSteps: [
-          'Gumawa ng iyong Account at kumpirmahin ang iyong email address.',
+          'Gumawa ng iyong Account para ligtas na mai-save ang iyong mga rekord.',
           'Kumpletuhin ang Guided Interview sa pamamagitan ng pagsagot sa karaniwang mga tanong sa pabahay.',
           'Suriin, i-download bilang PDF, o kopyahin ang iyong mga nabuong pormal na dokumento.'
         ]
@@ -324,8 +316,6 @@
       const [authPassword, setAuthPassword] = useState('');
       const [authError, setAuthError] = useState('');
       const [authLoading, setAuthLoading] = useState(false);
-      const [verificationSent, setVerificationSent] = useState(false);
-      const [checkLoading, setCheckLoading] = useState(false);
 
       // Main App Views State
       const [view, setView] = useState('dashboard');
@@ -407,9 +397,9 @@
         return () => unsubscribe();
       }, [auth]);
 
-      // 3. Fetch Data from Firestore (Guarded by user verification status check)
+      // 3. Fetch Data from Firestore (Guarded by user check)
       useEffect(() => {
-        if (!appUser || !appUser.emailVerified || !db) return;
+        if (!appUser || !db) return;
         const { collection, onSnapshot } = window.FirebaseHelper;
         
         const q = collection(db, 'artifacts', appId, 'users', appUser.uid, 'requests');
@@ -426,7 +416,7 @@
       // Refresh Icons
       useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
-      }, [view, currentStep, selectedRequest, activeOutputTab, appUser, verificationSent]);
+      }, [view, currentStep, selectedRequest, activeOutputTab, appUser]);
 
       // Error Code Decoder
       const getFriendlyErrorMessage = (error) => {
@@ -454,39 +444,17 @@
         e.preventDefault();
         setAuthError('');
         setAuthLoading(true);
-        const { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, doc, setDoc } = window.FirebaseHelper;
+        const { createUserWithEmailAndPassword, signInWithEmailAndPassword, doc, setDoc } = window.FirebaseHelper;
         
         try {
           if (authMode === 'register') {
             const userCred = await createUserWithEmailAndPassword(auth, authEmail, authPassword);
-            
-            // Safe Dual-stage Verification Sender
-            try {
-              const actionCodeSettings = {
-                url: window.location.href, // Auto redirects user back into this app layout
-                handleCodeInApp: false     // Disable strict deep linking to ensure standard web execution
-              };
-              await sendEmailVerification(userCred.user, actionCodeSettings);
-              setVerificationSent(true);
-            } catch (linkError) {
-              console.warn("Direct-redirect email format rejected, falling back to clean verification standard...", linkError);
-              try {
-                await sendEmailVerification(userCred.user);
-                setVerificationSent(true);
-              } catch (standardError) {
-                console.error("All email send strategies failed:", standardError);
-                throw standardError;
-              }
-            }
 
             // Track user profiles safely for system metrics
             const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'userProfiles', userCred.user.uid);
             await setDoc(userRef, { email: authEmail, createdAt: new Date().toISOString() });
           } else {
-            const userCred = await signInWithEmailAndPassword(auth, authEmail, authPassword);
-            if (!userCred.user.emailVerified) {
-              setVerificationSent(true);
-            }
+            await signInWithEmailAndPassword(auth, authEmail, authPassword);
           }
         } catch (error) {
           setAuthError(getFriendlyErrorMessage(error));
@@ -496,49 +464,9 @@
 
       const handleLogout = () => {
         const { signOut } = window.FirebaseHelper;
-        signOut(auth);
-        setVerificationSent(false);
-      };
-
-      const checkVerificationStatus = async () => {
-        setCheckLoading(true);
-        try {
-          if (auth.currentUser) {
-            await auth.currentUser.reload();
-            const updatedUser = auth.currentUser;
-            setAppUser({ ...updatedUser });
-            if (updatedUser.emailVerified) {
-              setVerificationSent(false);
-              alert("Verification verified! Welcome aboard.");
-            } else {
-              alert("Your account is still unverified. Please tap the confirmation link sent to " + updatedUser.email + " first.");
-            }
-          }
-        } catch (err) {
-          console.error("Reload status failed:", err);
-        }
-        setCheckLoading(false);
-      };
-
-      const resendVerification = async () => {
-        const { sendEmailVerification } = window.FirebaseHelper;
-        if (auth.currentUser) {
-          try {
-            const actionCodeSettings = {
-              url: window.location.href,
-              handleCodeInApp: false
-            };
-            await sendEmailVerification(auth.currentUser, actionCodeSettings);
-            alert("Verification email resent successfully!");
-          } catch (err) {
-            try {
-              await sendEmailVerification(auth.currentUser);
-              alert("Verification email resent successfully!");
-            } catch (innerErr) {
-              alert("Please wait a minute before requesting another verification link.");
-            }
-          }
-        }
+        signOut(auth).then(() => {
+          setAppUser(null);
+        });
       };
 
       // === INTERVIEW LOGIC ===
@@ -715,40 +643,6 @@
         return <div className="min-h-screen flex items-center justify-center text-teal-600 font-bold">Connecting securely...</div>;
       }
 
-      // === AUTH: STRICT VERIFICATION OR CHECKPOINT SCREEN ===
-      if (appUser && !appUser.emailVerified && !appUser.isAnonymous) {
-        return (
-          <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 animate-fadeIn">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md text-center px-4">
-              <div className="inline-flex p-3 bg-amber-100 rounded-2xl text-amber-700 shadow-md mx-auto">
-                <AlertTriangle className="w-8 h-8 text-amber-600" />
-              </div>
-              <h2 className="mt-4 text-3xl font-extrabold text-slate-900">Email Verification Required</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                You must verify your email address before using LawLens. We sent a secure verification link to:
-              </p>
-              <p className="font-extrabold text-teal-700 mt-1">{appUser.email}</p>
-              
-              <div className="mt-8 space-y-4 max-w-sm mx-auto">
-                <button 
-                  onClick={checkVerificationStatus} 
-                  disabled={checkLoading}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-sm text-sm transition"
-                >
-                  <RefreshCw /> {checkLoading ? "Checking..." : "I Verified My Email"}
-                </button>
-                <button onClick={resendVerification} className="w-full inline-flex justify-center px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition">
-                  Resend Verification Email
-                </button>
-                <button onClick={handleLogout} className="w-full inline-flex justify-center px-4 py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-sm transition">
-                  Log Out / Switch Account
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      }
-
       // === RENDER LOGIN/SIGNUP UI ===
       if (!appUser) {
         return (
@@ -808,6 +702,10 @@
               </div>
 
               <div className="flex items-center gap-3">
+                <span className="hidden sm:inline-block text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                  Logged in as <span className="text-slate-800">{appUser?.email}</span>
+                </span>
+                
                 <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
                   <Languages />
                   <select value={language} onChange={(e) => setLanguage(e.target.value)} className="bg-transparent text-sm font-semibold text-slate-700 focus:outline-none cursor-pointer pr-1">
@@ -870,7 +768,7 @@
                             <div className="flex items-center gap-3">
                               <span className="text-2xl">{iconObj?.icon || '🛠️'}</span>
                               <div>
-                                <h4 className="font-bold text-slate-800 text-sm">{iconObj?.label?.[language] || req.repairType}</h4>
+                                <h4 className="font-bold text-slate-800 text-sm">{iconObj?.label?.[language] || req.repairType || 'Repair Request'}</h4>
                                 <p className="text-xs text-slate-500">{new Date(req.createdAt).toLocaleDateString()}</p>
                               </div>
                             </div>
@@ -887,7 +785,7 @@
                       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
                           <h3 className="text-xl font-bold text-slate-800">
-                            {REPAIR_TYPES.find(r => r.id === selectedRequest.repairType)?.label?.[language] || selectedRequest.repairType} Request
+                            {REPAIR_TYPES.find(r => r.id === selectedRequest.repairType)?.label?.[language] || selectedRequest.repairType || 'Repair'} Request
                           </h3>
                           
                           {/* Print to PDF Action Button */}
@@ -1062,7 +960,7 @@
             )}
             
             {view === 'result' && loading && (
-              <div className="text-center py-20"><h3 className="text-xl font-bold text-slate-800">Saving securely...</h3></div>
+              <div className="text-center py-20 no-print"><h3 className="text-xl font-bold text-slate-800">Saving securely...</h3></div>
             )}
           </main>
 
@@ -1078,7 +976,7 @@
                   <div className="grid grid-cols-2 gap-4">
                     {selectedRequest.photosData.map((b64, idx) => (
                       <div key={idx} className="border border-slate-300 p-2 rounded-lg">
-                        <img src={b64} alt="Evidence" className="w-full h-auto object-contain rounded animate-fadeIn" />
+                        <img src={b64} alt="Evidence" className="w-full h-auto object-contain rounded" />
                       </div>
                     ))}
                   </div>
