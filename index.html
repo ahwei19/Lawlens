@@ -471,10 +471,21 @@
 
       // === INTERVIEW LOGIC ===
       const resetForm = () => {
+        // Automatically grab profile data from the user's most recent request, if they have one
+        const lastReq = requests.length > 0 ? requests[0] : {};
+
         setFormData({
-          tenantName: '', rentalAddress: '', apartmentNum: '', city: '',
-          landlordName: '', repairType: '', repairDescription: '', dateBegan: new Date().toISOString().split('T')[0],
-          notifiedBefore: 'no', urgency: 'normal', children: 'no',
+          tenantName: lastReq.tenantName || '', 
+          rentalAddress: lastReq.rentalAddress || '', 
+          apartmentNum: lastReq.apartmentNum || '', 
+          city: lastReq.city || '',
+          landlordName: lastReq.landlordName || '', 
+          repairType: '', 
+          repairDescription: '', 
+          dateBegan: new Date().toISOString().split('T')[0],
+          notifiedBefore: 'no', 
+          urgency: 'normal', 
+          children: 'no',
           photosData: []
         });
       };
